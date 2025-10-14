@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
-import type { ExecutionContext, UserRole } from './execution-context'
+import type { ExecutionContext, UserRole, Permission } from './execution-context'
 import type { Employee } from '@/types/domain'
 
 export async function createExecutionContext(request: NextRequest): Promise<ExecutionContext> {
@@ -87,8 +87,8 @@ function determineUserRoles(employee: any): UserRole[] {
   return roles
 }
 
-function getPermissionsForRoles(roles: UserRole[]): string[] {
-  const permissions = new Set<string>()
+function getPermissionsForRoles(roles: UserRole[]): Permission[] {
+  const permissions = new Set<Permission>()
   
   for (const role of roles) {
     const rolePermissions = ROLE_PERMISSIONS[role] || []

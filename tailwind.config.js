@@ -19,11 +19,11 @@ module.exports = {
       colors: {
         // Credos-C Brand Colors
         credos: {
-          primary: "#1e40af", // Синий Кредо-С
-          secondary: "#3b82f6",
-          accent: "#60a5fa",
-          muted: "#f8fafc",
-          border: "#e2e8f0",
+          primary: "#3b82f6", // Синий Кредо-С
+          secondary: "#1e40af", // Темно-синий
+          accent: "#60a5fa", // Светло-синий
+          muted: "#f8fafc", // Светло-серый
+          border: "#e2e8f0", // Граница
         },
         // Business Colors
         business: {
