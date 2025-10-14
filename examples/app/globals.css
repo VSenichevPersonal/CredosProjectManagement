@@ -1,0 +1,300 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Cyberosnova Compliance - Dark blue sidebar and header with light content */
+:root {
+  /* Primary - Blue accent */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* Secondary - Green from Cyberosnova logo */
+  --secondary-50: #e8f5f0;
+  --secondary-100: #c2e6d9;
+  --secondary-200: #9ad7c2;
+  --secondary-300: #72c8ab;
+  --secondary-400: #4ab994;
+  --secondary-500: #22aa7d;
+  --secondary-600: #1b8864;
+  --secondary-700: #14664b;
+  --secondary-800: #0d4432;
+  --secondary-900: #062219;
+
+  /* Accent - Bright blue for highlights */
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+
+  /* Updated blue shades to match Cyberosnova screenshot - dark blue for sidebar and header */
+  --blue-950: #1e3a52; /* Dark blue - sidebar and header background */
+  --blue-900: #2d4a5e; /* Medium-dark blue - hover states */
+  --blue-800: #3d5a73; /* Medium blue - active states */
+  --blue-700: #4a6b85; /* Medium-light blue - borders */
+  --blue-600: #64748b; /* Light blue - muted text */
+  --blue-500: #94a3b8; /* Lighter blue - secondary text */
+
+  /* Light neutrals for content area */
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  /* Semantic colors */
+  --success-500: #10b981;
+  --warning-500: #f59e0b;
+  --error-500: #ef4444;
+  --info-500: #3b82f6;
+
+  /* Light content area with dark blue sidebar and header */
+  --bg-primary: #ffffff; /* Main content - light */
+  --bg-secondary: #f8fafc; /* Secondary content - light gray */
+  --bg-tertiary: #f1f5f9; /* Tertiary - slightly darker light gray */
+  --bg-elevated: #ffffff; /* Cards on light background */
+
+  /* Sidebar and header colors - both use dark blue from sidebar */
+  --bg-sidebar: #1e3a52; /* Dark blue sidebar (original sidebar color) */
+  --bg-sidebar-accent: #2d4a5e; /* Medium-dark blue for hover/active */
+  --bg-header: #1e3a52; /* Dark blue header (same as sidebar) */
+
+  /* Text colors - dark on light for content, light on dark for sidebar/header */
+  --text-primary: #0f172a; /* Dark blue text on light background */
+  --text-secondary: #475569; /* Medium blue for secondary text */
+  --text-tertiary: #64748b; /* Light blue for tertiary text */
+  --text-inverse: #f8fafc; /* Light text on dark backgrounds (sidebar/header) */
+
+  /* Shadcn compatibility tokens - light theme for content */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #22aa7d;
+  --secondary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+
+  /* Sidebar tokens - dark blue theme */
+  --sidebar: #1e3a52;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2d4a5e;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #4a6b85;
+  --sidebar-ring: #3b82f6;
+
+  /* Header tokens - dark blue theme (same as sidebar) */
+  --header: #1e3a52;
+  --header-foreground: #f8fafc;
+  --header-border: #4a6b85;
+
+  /* Chart colors */
+  --chart-1: #3b82f6;
+  --chart-2: #22aa7d;
+  --chart-3: #8b5cf6;
+  --chart-4: #10b981;
+  --chart-5: #f59e0b;
+
+  /* Font families */
+  --font-pt-sans: "PT Sans", sans-serif;
+  --font-jetbrains-mono: "JetBrains Mono", monospace;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  /* Added font family variables for PT Sans and JetBrains Mono */
+  --font-sans: var(--font-pt-sans);
+  --font-mono: var(--font-jetbrains-mono);
+
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Improved scrollbar styling for light theme with dark blue accents */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--neutral-100);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--blue-600);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--blue-700);
+  }
+}
+
+@layer components {
+  .diff-container {
+    @apply font-mono text-sm leading-relaxed;
+  }
+
+  .diff-equal {
+    @apply text-foreground;
+  }
+
+  .diff-add {
+    @apply bg-green-100 text-green-900 px-0.5;
+  }
+
+  .diff-delete {
+    @apply bg-red-100 text-red-900 line-through px-0.5;
+  }
+
+  .diff-modify {
+    @apply bg-yellow-100 text-yellow-900 px-0.5;
+  }
+
+  /* Side-by-side diff view */
+  .diff-side-by-side {
+    @apply grid grid-cols-2 gap-4;
+  }
+
+  .diff-side-by-side .diff-left,
+  .diff-side-by-side .diff-right {
+    @apply border border-border rounded-lg p-4 overflow-auto;
+  }
+
+  .diff-side-by-side .diff-left {
+    @apply bg-red-50;
+  }
+
+  .diff-side-by-side .diff-right {
+    @apply bg-green-50;
+  }
+
+  /* Unified diff view */
+  .diff-unified {
+    @apply border border-border rounded-lg p-4 overflow-auto bg-background;
+  }
+
+  .diff-line {
+    @apply py-0.5 px-2 hover:bg-muted/50;
+  }
+
+  .diff-line-number {
+    @apply inline-block w-12 text-right text-muted-foreground select-none mr-4;
+  }
+}
+
+/* Added float animation for auth pages */
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}

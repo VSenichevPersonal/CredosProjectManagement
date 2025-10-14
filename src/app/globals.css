@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Credos Custom Styles */
+@layer components {
+  .credos-card {
+    @apply bg-white border border-credos-border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .credos-button-primary {
+    @apply bg-credos-primary text-white hover:bg-credos-secondary transition-colors duration-200 px-4 py-2 rounded-md font-medium;
+  }
+  
+  .credos-button-secondary {
+    @apply bg-white border border-credos-border text-credos-primary hover:bg-credos-muted transition-colors duration-200 px-4 py-2 rounded-md font-medium;
+  }
+  
+  .credos-input {
+    @apply border border-credos-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-credos-primary focus:border-transparent;
+  }
+  
+  .credos-metric-card {
+    @apply credos-card p-6 relative overflow-hidden;
+  }
+  
+  .credos-metric-value {
+    @apply text-3xl font-bold text-credos-primary mb-2;
+  }
+  
+  .credos-metric-label {
+    @apply text-sm text-gray-600 mb-1;
+  }
+  
+  .credos-trend-up {
+    @apply text-green-600 flex items-center gap-1 text-sm;
+  }
+  
+  .credos-trend-down {
+    @apply text-red-600 flex items-center gap-1 text-sm;
+  }
+  
+  .credos-direction-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .credos-direction-ib {
+    @apply credos-direction-badge bg-blue-100 text-blue-800;
+  }
+  
+  .credos-direction-pib {
+    @apply credos-direction-badge bg-cyan-100 text-cyan-800;
+  }
+  
+  .credos-direction-tc {
+    @apply credos-direction-badge bg-indigo-100 text-indigo-800;
+  }
+  
+  .credos-direction-audit {
+    @apply credos-direction-badge bg-purple-100 text-purple-800;
+  }
+  
+  .credos-direction-hr {
+    @apply credos-direction-badge bg-pink-100 text-pink-800;
+  }
+  
+  .credos-direction-finance {
+    @apply credos-direction-badge bg-green-100 text-green-800;
+  }
+}

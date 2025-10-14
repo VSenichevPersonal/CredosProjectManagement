@@ -1,0 +1,8 @@
+-- This migration is no longer needed
+-- Approval workflow fields (reviewed_by, reviewed_at, review_comment) 
+-- are now included in the base schema (scripts/001_init_schema.sql)
+-- 
+-- The compliance table status check constraint also includes:
+-- 'pending_review', 'approved', 'rejected' statuses
+--
+-- This file can be safely ignored or deleted

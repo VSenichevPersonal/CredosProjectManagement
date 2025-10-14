@@ -1,0 +1,5 @@
+-- This migration is no longer needed
+-- The notifications table is already created in scripts/001_init_schema.sql
+-- with all necessary indexes and constraints
+--
+-- This file can be safely ignored or deleted

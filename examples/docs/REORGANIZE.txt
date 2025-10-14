@@ -1,0 +1,28 @@
+# Актуальные (Stage 15) - переместить в stage-15/:
+ADMIN_DICTIONARIES_AUDIT.md          <- Stage 15 анализ
+CHANGELOG_COMPLIANCE_UI.md           <- Stage 15 изменения
+EVIDENCE_LOADING_FLOW.md             <- Stage 15 архитектура
+NAVIGATION_QUICK_FIX.md              <- Stage 15 изменения
+NAVIGATION_UX_ANALYSIS.md            <- Stage 15 анализ
+SESSION_SUMMARY_2025-10-12.md        <- Stage 15 итоги
+STANDARD_PAGE_LAYOUT.md              <- Stage 15 стандарт
+TABLE_STANDARDIZATION_PLAN.md       <- Stage 15 план
+UI_IMPROVEMENTS_MEASURES.md          <- Stage 15 улучшения
+README_FOR_LLM.md                    <- Актуальный, обновить для Stage 15
+ui-patterns.md                       <- Актуальный, обновить для Stage 15
+
+# Устаревшие (Legacy) - переместить в legacy/:
+ISSUE_CONTROL_MEASURES_NOT_CREATED.md <- Проблема решена, архив
+data-integrity-model.md               <- Старая модель, переместить в legacy
+integrity-improvement-plan.md         <- Старый план
+integrity-report-2025-01-10.md        <- Старый отчёт (январь -> октябрь)
+rls-policies-documentation.md         <- Старая документация RLS
+
+# Специальные (может быть удалить/пересмотреть):
+EXECUTIVE_SUMMARY_IMPLEMENTATION.md   <- Что это? Проверить
+EXPORT_AND_DASHBOARD_UPDATE.md        <- Что это? Проверить
+MIGRATION_SUPABASE_TO_POSTGRES.md     <- Миграция? Legacy
+PRODUCT_READINESS_ASSESSMENT.md       <- Оценка? Может в stage-15
+
+# Корневые (оставить):
+README.md                             <- Главный README, обновить

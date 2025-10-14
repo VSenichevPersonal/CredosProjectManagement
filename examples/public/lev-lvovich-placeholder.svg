@@ -1,0 +1,31 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Круг фон -->
+  <circle cx="100" cy="100" r="98" fill="#f59e0b" stroke="#92400e" stroke-width="4"/>
+  
+  <!-- Грива -->
+  <circle cx="100" cy="100" r="85" fill="#d97706"/>
+  
+  <!-- Морда -->
+  <circle cx="100" cy="110" r="60" fill="#fbbf24"/>
+  
+  <!-- Очки -->
+  <circle cx="80" cy="95" r="15" fill="none" stroke="#000" stroke-width="3"/>
+  <circle cx="120" cy="95" r="15" fill="none" stroke="#000" stroke-width="3"/>
+  <line x1="95" y1="95" x2="105" y2="95" stroke="#000" stroke-width="3"/>
+  
+  <!-- Глаза -->
+  <circle cx="80" cy="95" r="5" fill="#000"/>
+  <circle cx="120" cy="95" r="5" fill="#000"/>
+  
+  <!-- Нос -->
+  <ellipse cx="100" cy="115" rx="12" ry="10" fill="#92400e"/>
+  
+  <!-- Улыбка -->
+  <path d="M 85 125 Q 100 135 115 125" stroke="#92400e" stroke-width="3" fill="none"/>
+  
+  <!-- Текст -->
+  <text x="100" y="185" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#92400e">
+    Лев Львович
+  </text>
+</svg>
+
