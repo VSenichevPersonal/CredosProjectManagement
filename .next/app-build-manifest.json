@@ -12,7 +12,7 @@
       "static/chunks/fd9d1056-729ec592c003a9f8.js",
       "static/chunks/117-d485520dc6dc8208.js",
       "static/chunks/main-app-f60a4780a0f7fd53.js",
-      "static/css/a225cc9332d0f4c6.css",
+      "static/css/f2783235d2acaee3.css",
       "static/chunks/app/layout-d18367cdf22a7d28.js"
     ],
     "/page": [
@@ -24,26 +24,19 @@
       "static/chunks/206-60c14a45fcd807f0.js",
       "static/chunks/app/page-ce452ffa9c982f3a.js"
     ],
-    "/admin/finance/page": [
+    "/admin/dictionaries/page": [
       "static/chunks/webpack-9d964d8cb0d81fe9.js",
       "static/chunks/fd9d1056-729ec592c003a9f8.js",
       "static/chunks/117-d485520dc6dc8208.js",
       "static/chunks/main-app-f60a4780a0f7fd53.js",
-      "static/chunks/app/admin/finance/page-2a252be6d67b906f.js"
+      "static/chunks/app/admin/dictionaries/page-7d9291404affe83c.js"
     ],
     "/admin/layout": [
       "static/chunks/webpack-9d964d8cb0d81fe9.js",
       "static/chunks/fd9d1056-729ec592c003a9f8.js",
       "static/chunks/117-d485520dc6dc8208.js",
       "static/chunks/main-app-f60a4780a0f7fd53.js",
-      "static/chunks/app/admin/layout-cfa744ea6788c49c.js"
-    ],
-    "/admin/dictionaries/page": [
-      "static/chunks/webpack-9d964d8cb0d81fe9.js",
-      "static/chunks/fd9d1056-729ec592c003a9f8.js",
-      "static/chunks/117-d485520dc6dc8208.js",
-      "static/chunks/main-app-f60a4780a0f7fd53.js",
-      "static/chunks/app/admin/dictionaries/page-55475faa61972c63.js"
+      "static/chunks/app/admin/layout-e08f9e613c44c67d.js"
     ],
     "/admin/page": [
       "static/chunks/webpack-9d964d8cb0d81fe9.js",
@@ -52,6 +45,13 @@
       "static/chunks/main-app-f60a4780a0f7fd53.js",
       "static/chunks/972-1b85b0e65d5098a4.js",
       "static/chunks/app/admin/page-2614d729f7b34080.js"
+    ],
+    "/admin/finance/page": [
+      "static/chunks/webpack-9d964d8cb0d81fe9.js",
+      "static/chunks/fd9d1056-729ec592c003a9f8.js",
+      "static/chunks/117-d485520dc6dc8208.js",
+      "static/chunks/main-app-f60a4780a0f7fd53.js",
+      "static/chunks/app/admin/finance/page-080c8b9974ea39cc.js"
     ]
   }
 }
