@@ -23,6 +23,7 @@ import type {
   UpdateTimeEntryDTO,
   ApproveTimeEntryDTO
 } from '@/types/domain'
+import type { RevenueManual, CreateRevenueManualDTO, RevenueFilters } from '@/types/domain'
 
 export interface DatabaseProvider {
   // Employee operations
@@ -36,6 +37,14 @@ export interface DatabaseProvider {
     delete(ctx: ExecutionContext, id: string): Promise<void>
   }
   
+  // Finance operations
+  finance: {
+    revenues: {
+      getAll(ctx: ExecutionContext, filters?: RevenueFilters): Promise<RevenueManual[]>
+      create(ctx: ExecutionContext, data: CreateRevenueManualDTO): Promise<RevenueManual>
+    }
+  }
+
   // Direction operations
   directions: {
     getAll(ctx: ExecutionContext): Promise<Direction[]>

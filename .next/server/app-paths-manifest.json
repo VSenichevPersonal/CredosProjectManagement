@@ -1,11 +1,12 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/me/route": "app/api/me/route.js",
-  "/api/auth/logout/route": "app/api/auth/logout/route.js",
-  "/page": "app/page.js",
   "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/finance/revenues/route": "app/api/finance/revenues/route.js",
+  "/api/me/route": "app/api/me/route.js",
+  "/page": "app/page.js",
   "/api/time-entries/route": "app/api/time-entries/route.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
   "/admin/finance/page": "app/admin/finance/page.js",
   "/admin/dictionaries/page": "app/admin/dictionaries/page.js",
   "/admin/page": "app/admin/page.js"

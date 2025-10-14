@@ -6,256 +6,92 @@
  */
 
 import type { ExecutionContext } from '@/lib/context/execution-context'
-import type {
-  Employee,
-  Direction,
-  Project,
-  Task,
-  TimeEntry,
-  ProjectFilters,
-  TaskFilters,
-  TimeEntryFilters,
-  CreateProjectDTO,
-  UpdateProjectDTO,
-  CreateTaskDTO,
-  UpdateTaskDTO,
-  CreateTimeEntryDTO,
-  UpdateTimeEntryDTO,
-  ApproveTimeEntryDTO
-} from '@/types/domain'
+import type { Employee, Direction, RevenueManual, CreateRevenueManualDTO } from '@/types/domain'
 
 export class SimpleDatabaseProvider {
   employees = {
-    async getAll(ctx: ExecutionContext): Promise<Employee[]> {
-      // Mock data for now
-      return []
-    },
-    
-    async getById(ctx: ExecutionContext, id: string): Promise<Employee | null> {
-      return null
-    },
-    
-    async getByDirection(ctx: ExecutionContext, directionId: string): Promise<Employee[]> {
-      return []
-    },
-    
-    async getSubordinates(ctx: ExecutionContext, managerId: string): Promise<Employee[]> {
-      return []
-    },
-    
-    async create(ctx: ExecutionContext, data: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>): Promise<Employee> {
-      throw new Error('Not implemented')
-    },
-    
-    async update(ctx: ExecutionContext, id: string, data: Partial<Employee>): Promise<Employee> {
-      throw new Error('Not implemented')
-    },
-    
-    async delete(ctx: ExecutionContext, id: string): Promise<void> {
-      throw new Error('Not implemented')
-    }
+    async getAll(_ctx: ExecutionContext): Promise<Employee[]> { return [] },
+    async getById(_ctx: ExecutionContext, _id: string): Promise<Employee | null> { return null },
+    async getByDirection(_ctx: ExecutionContext, _directionId: string): Promise<Employee[]> { return [] },
+    async getSubordinates(_ctx: ExecutionContext, _managerId: string): Promise<Employee[]> { return [] },
+    async create(_ctx: ExecutionContext, _data: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>): Promise<Employee> { throw new Error('Not implemented') },
+    async update(_ctx: ExecutionContext, _id: string, _data: Partial<Employee>): Promise<Employee> { throw new Error('Not implemented') },
+    async delete(_ctx: ExecutionContext, _id: string): Promise<void> { }
   }
-  
+
   directions = {
-    async getAll(ctx: ExecutionContext): Promise<Direction[]> {
-      // Mock data for now
-      return [
-        {
-          id: '1',
-          name: 'Информационная безопасность',
-          description: 'Направление ИБ',
-          budget: 1000000,
-          budgetThreshold: 1100000,
-          color: 'blue',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Промышленная ИБ',
-          description: 'Направление ПИБ',
-          budget: 800000,
-          budgetThreshold: 880000,
-          color: 'cyan',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ]
-    },
-    
-    async getById(ctx: ExecutionContext, id: string): Promise<Direction | null> {
-      // Mock implementation
-      if (id === '1') {
-        return {
-          id: '1',
-          name: 'Информационная безопасность',
-          description: 'Направление ИБ',
-          budget: 1000000,
-          budgetThreshold: 1100000,
-          color: 'blue',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      }
-      return null
-    },
-    
-    async create(ctx: ExecutionContext, data: Omit<Direction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Direction> {
-      throw new Error('Not implemented')
-    },
-    
-    async update(ctx: ExecutionContext, id: string, data: Partial<Direction>): Promise<Direction> {
-      throw new Error('Not implemented')
-    },
-    
-    async delete(ctx: ExecutionContext, id: string): Promise<void> {
-      throw new Error('Not implemented')
-    }
+    async getAll(_ctx: ExecutionContext): Promise<Direction[]> { return [] },
+    async getById(_ctx: ExecutionContext, _id: string): Promise<Direction | null> { return null },
+    async create(_ctx: ExecutionContext, _data: Omit<Direction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Direction> { throw new Error('Not implemented') },
+    async update(_ctx: ExecutionContext, _id: string, _data: Partial<Direction>): Promise<Direction> { throw new Error('Not implemented') },
+    async delete(_ctx: ExecutionContext, _id: string): Promise<void> { }
   }
-  
+
   projects = {
-    async getAll(ctx: ExecutionContext, filters?: ProjectFilters): Promise<Project[]> {
-      return []
-    },
-    
-    async getById(ctx: ExecutionContext, id: string): Promise<Project | null> {
-      return null
-    },
-    
-    async getByManager(ctx: ExecutionContext, managerId: string): Promise<Project[]> {
-      return []
-    },
-    
-    async getByDirection(ctx: ExecutionContext, directionId: string): Promise<Project[]> {
-      return []
-    },
-    
-    async create(ctx: ExecutionContext, data: CreateProjectDTO): Promise<Project> {
-      throw new Error('Not implemented')
-    },
-    
-    async update(ctx: ExecutionContext, id: string, data: UpdateProjectDTO): Promise<Project> {
-      throw new Error('Not implemented')
-    },
-    
-    async delete(ctx: ExecutionContext, id: string): Promise<void> {
-      throw new Error('Not implemented')
-    }
+    async getAll(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getById(_ctx: ExecutionContext, _id: string): Promise<any | null> { return null },
+    async getByManager(_ctx: ExecutionContext, _managerId: string): Promise<any[]> { return [] },
+    async getByDirection(_ctx: ExecutionContext, _directionId: string): Promise<any[]> { return [] },
+    async create(_ctx: ExecutionContext, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async update(_ctx: ExecutionContext, _id: string, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async delete(_ctx: ExecutionContext, _id: string): Promise<void> { }
   }
-  
+
   tasks = {
-    async getAll(ctx: ExecutionContext, filters?: TaskFilters): Promise<Task[]> {
-      return []
-    },
-    
-    async getById(ctx: ExecutionContext, id: string): Promise<Task | null> {
-      return null
-    },
-    
-    async getByProject(ctx: ExecutionContext, projectId: string): Promise<Task[]> {
-      return []
-    },
-    
-    async getByAssignee(ctx: ExecutionContext, assigneeId: string): Promise<Task[]> {
-      return []
-    },
-    
-    async create(ctx: ExecutionContext, data: CreateTaskDTO): Promise<Task> {
-      throw new Error('Not implemented')
-    },
-    
-    async update(ctx: ExecutionContext, id: string, data: UpdateTaskDTO): Promise<Task> {
-      throw new Error('Not implemented')
-    },
-    
-    async delete(ctx: ExecutionContext, id: string): Promise<void> {
-      throw new Error('Not implemented')
-    }
+    async getAll(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getById(_ctx: ExecutionContext, _id: string): Promise<any | null> { return null },
+    async getByProject(_ctx: ExecutionContext, _projectId: string): Promise<any[]> { return [] },
+    async getByAssignee(_ctx: ExecutionContext, _assigneeId: string): Promise<any[]> { return [] },
+    async create(_ctx: ExecutionContext, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async update(_ctx: ExecutionContext, _id: string, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async delete(_ctx: ExecutionContext, _id: string): Promise<void> { }
   }
-  
+
   timeEntries = {
-    async getAll(ctx: ExecutionContext, filters?: TimeEntryFilters): Promise<TimeEntry[]> {
-      return []
-    },
-    
-    async getById(ctx: ExecutionContext, id: string): Promise<TimeEntry | null> {
-      return null
-    },
-    
-    async getByEmployee(ctx: ExecutionContext, employeeId: string, dateFrom?: string, dateTo?: string): Promise<TimeEntry[]> {
-      return []
-    },
-    
-    async getByTask(ctx: ExecutionContext, taskId: string): Promise<TimeEntry[]> {
-      return []
-    },
-    
-    async getPendingApprovals(ctx: ExecutionContext): Promise<TimeEntry[]> {
-      return []
-    },
-    
-    async create(ctx: ExecutionContext, data: CreateTimeEntryDTO): Promise<TimeEntry> {
-      throw new Error('Not implemented')
-    },
-    
-    async update(ctx: ExecutionContext, id: string, data: UpdateTimeEntryDTO): Promise<TimeEntry> {
-      throw new Error('Not implemented')
-    },
-    
-    async delete(ctx: ExecutionContext, id: string): Promise<void> {
-      throw new Error('Not implemented')
-    },
-    
-    async approve(ctx: ExecutionContext, data: ApproveTimeEntryDTO): Promise<void> {
-      throw new Error('Not implemented')
-    },
-    
-    async reject(ctx: ExecutionContext, timeEntryIds: string[], rejectedBy: string, reason: string): Promise<void> {
-      throw new Error('Not implemented')
+    async getAll(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getById(_ctx: ExecutionContext, _id: string): Promise<any | null> { return null },
+    async getByEmployee(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getByTask(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getPendingApprovals(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async create(_ctx: ExecutionContext, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async update(_ctx: ExecutionContext, _id: string, _data: any): Promise<any> { throw new Error('Not implemented') },
+    async delete(_ctx: ExecutionContext, _id: string): Promise<void> { },
+    async approve(_ctx: ExecutionContext, _data: any): Promise<void> { },
+    async reject(_ctx: ExecutionContext): Promise<void> { }
+  }
+
+  finance = {
+    revenues: {
+      async getAll(_ctx: ExecutionContext): Promise<RevenueManual[]> {
+        return []
+      },
+      async create(_ctx: ExecutionContext, data: CreateRevenueManualDTO): Promise<RevenueManual> {
+        const now = new Date().toISOString()
+        return {
+          id: crypto.randomUUID(),
+          projectId: data.projectId,
+          orderId: data.orderId,
+          serviceId: data.serviceId,
+          periodStart: data.periodStart,
+          periodEnd: data.periodEnd,
+          amount: data.amount,
+          currency: data.currency ?? 'RUB',
+          notes: data.notes,
+          createdAt: now,
+          updatedAt: now
+        }
+      }
     }
   }
-  
+
   dashboard = {
-    async getMetrics(ctx: ExecutionContext) {
-      return {
-        totalProjects: 12,
-        activeProjects: 8,
-        totalEmployees: 24,
-        totalHoursThisMonth: 1247,
-        totalHoursThisWeek: 312,
-        pendingApprovals: 5,
-        overdueTasks: 3
-      }
-    },
-    
-    async getDirectionMetrics(ctx: ExecutionContext) {
-      return []
-    },
-    
-    async getEmployeeMetrics(ctx: ExecutionContext, employeeId: string) {
-      return {
-        totalHoursThisMonth: 160,
-        totalHoursThisWeek: 40,
-        activeProjects: 2,
-        pendingTimeEntries: 1
-      }
-    }
+    async getMetrics() { return { totalProjects: 0, activeProjects: 0, totalEmployees: 0, totalHoursThisMonth: 0, totalHoursThisWeek: 0, pendingApprovals: 0, overdueTasks: 0 } },
+    async getDirectionMetrics() { return [] },
+    async getEmployeeMetrics() { return { totalHoursThisMonth: 0, totalHoursThisWeek: 0, activeProjects: 0, pendingTimeEntries: 0 } },
   }
-  
+
   utils = {
-    async healthCheck(): Promise<boolean> {
-      return true
-    },
-    
-    async getDatabaseStats() {
-      return {
-        totalRecords: 0,
-        lastBackup: new Date().toISOString(),
-        version: '1.0.0'
-      }
-    }
+    async healthCheck() { return true },
+    async getDatabaseStats() { return { totalRecords: 0, lastBackup: new Date().toISOString(), version: '0.0.1' } }
   }
 }

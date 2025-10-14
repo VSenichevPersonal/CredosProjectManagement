@@ -306,6 +306,39 @@ export interface ApproveTimeEntryDTO {
   rejectionReason?: string
 }
 
+// Finance domain - manual revenues
+export interface RevenueManual {
+  id: string
+  projectId: string
+  orderId?: string
+  serviceId?: string
+  periodStart: string
+  periodEnd: string
+  amount: number
+  currency: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateRevenueManualDTO {
+  projectId: string
+  orderId?: string
+  serviceId?: string
+  periodStart: string
+  periodEnd: string
+  amount: number
+  currency?: string
+  notes?: string
+}
+
+export interface RevenueFilters {
+  projectId?: string
+  orderId?: string
+  dateFrom?: string
+  dateTo?: string
+}
+
 // Filters for queries
 export interface ProjectFilters {
   directionId?: string
