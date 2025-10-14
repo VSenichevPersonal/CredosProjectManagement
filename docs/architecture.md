@@ -389,6 +389,35 @@ ctx.logger.info("[Service] Operation completed", {
 
 ---
 
+## 🔐 Аутентификация (Lucia + PostgreSQL с взаимозаменяемостью Supabase)
+
+- Провайдерная архитектура: `AuthProvider` интерфейс + `LuciaAuthProvider` реализация
+- Таблицы в схеме `auth` совместимы по структуре с Supabase (`auth.user`, `auth.session`, `auth.key`)
+- Смена реализации на Supabase сводится к замене инициализации в `lib/auth` и переменных окружения
+- API остаётся неизменным: `/api/signup`, `/api/login`, `/api/logout`, `/api/me`
+
+Схема:
+```
+auth.user(id uuid, email text unique, encrypted_password text, email_confirmed_at timestamptz,
+          created_at timestamptz, updated_at timestamptz)
+
+auth.session(id uuid, user_id uuid fk -> auth.user, expires_at timestamptz)
+
+auth.key(id text, user_id uuid fk -> auth.user, hashed_password text)
+```
+
+Поток:
+1) register → создаём пользователя и ключ, возвращаем cookie-сессию
+2) login → проверяем ключ, создаём сессию, кладём cookie
+3) logout → инвалидируем сессию, сбрасываем cookie
+4) me → читаем cookie, возвращаем текущего пользователя
+
+```startLine:endLine:src/lib/auth/lucia.ts
+// см. инициализацию Lucia с таблицами auth.user/session/key
+```
+
+---
+
 ## 🔄 Deployment Architecture
 
 ### 1. Railway Deployment
