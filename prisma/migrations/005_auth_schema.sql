@@ -13,7 +13,7 @@ create table if not exists auth."user" (
 );
 
 create table if not exists auth.session (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   user_id uuid references auth."user"(id) on delete cascade,
   expires_at timestamptz not null
 );
