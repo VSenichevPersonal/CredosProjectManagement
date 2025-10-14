@@ -517,3 +517,97 @@ CREATE TABLE audit_log (
 ---
 
 *Схема базы данных эволюционирует вместе с требованиями проекта*
+
+## 💼 Stage 2: Финансовые таблицы
+
+Схема `finance` для учета доходов и затрат:
+
+```sql
+create schema if not exists finance;
+
+-- Заказы
+create table finance.customer_order (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  code text,
+  title text not null,
+  customer text,
+  status text default 'active',
+  amount_total numeric(15,2),
+  currency text default 'RUB',
+  start_date date,
+  end_date date,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Услуги в заказе
+create table finance.order_service (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references finance.customer_order(id) on delete cascade,
+  name text not null,
+  description text,
+  quantity numeric(12,4) default 1,
+  unit_price numeric(15,2) default 0,
+  amount numeric(15,2) generated always as (coalesce(quantity,1) * coalesce(unit_price,0)) stored,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Ручные доходы по периодам
+create table finance.revenue_manual (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  order_id uuid references finance.customer_order(id) on delete set null,
+  service_id uuid references finance.order_service(id) on delete set null,
+  period_start date not null,
+  period_end date not null,
+  amount numeric(15,2) not null,
+  currency text default 'RUB',
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Доп. затраты
+create table finance.extra_cost (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  direction_id uuid references directions(id) on delete set null,
+  cost_type text,
+  period_start date not null,
+  period_end date not null,
+  amount numeric(15,2) not null,
+  currency text default 'RUB',
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Реестр зарплат
+create table finance.salary_register (
+  id uuid primary key default gen_random_uuid(),
+  period_start date not null,
+  period_end date not null,
+  employee_id uuid references employees(id) on delete set null,
+  direction_id uuid references directions(id) on delete set null,
+  amount numeric(15,2) not null,
+  source text default 'manual',
+  description text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Правила распределения
+create table finance.allocation_rule (
+  id uuid primary key default gen_random_uuid(),
+  scope text not null default 'project',
+  scope_id uuid,
+  method text not null default 'hours',
+  percent numeric(7,4),
+  notes text,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+```
