@@ -6,7 +6,7 @@
  */
 
 import type { ExecutionContext } from '@/lib/context/execution-context'
-import type { Employee, Direction, RevenueManual, CreateRevenueManualDTO } from '@/types/domain'
+import type { Employee, Direction, RevenueManual, CreateRevenueManualDTO, SalaryRegister, CreateSalaryRegisterDTO } from '@/types/domain'
 
 export class SimpleDatabaseProvider {
   employees = {
@@ -77,6 +77,26 @@ export class SimpleDatabaseProvider {
           amount: data.amount,
           currency: data.currency ?? 'RUB',
           notes: data.notes,
+          createdAt: now,
+          updatedAt: now
+        }
+      }
+    },
+    salaryRegister: {
+      async getAll(_ctx: ExecutionContext): Promise<SalaryRegister[]> {
+        return []
+      },
+      async create(_ctx: ExecutionContext, data: CreateSalaryRegisterDTO): Promise<SalaryRegister> {
+        const now = new Date().toISOString()
+        return {
+          id: crypto.randomUUID(),
+          periodStart: data.periodStart,
+          periodEnd: data.periodEnd,
+          employeeId: data.employeeId,
+          directionId: data.directionId,
+          amount: data.amount,
+          source: data.source ?? 'manual',
+          description: data.description,
           createdAt: now,
           updatedAt: now
         }

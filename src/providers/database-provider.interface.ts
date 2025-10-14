@@ -23,7 +23,7 @@ import type {
   UpdateTimeEntryDTO,
   ApproveTimeEntryDTO
 } from '@/types/domain'
-import type { RevenueManual, CreateRevenueManualDTO, RevenueFilters } from '@/types/domain'
+import type { RevenueManual, CreateRevenueManualDTO, RevenueFilters, SalaryRegister, CreateSalaryRegisterDTO } from '@/types/domain'
 
 export interface DatabaseProvider {
   // Employee operations
@@ -42,6 +42,10 @@ export interface DatabaseProvider {
     revenues: {
       getAll(ctx: ExecutionContext, filters?: RevenueFilters): Promise<RevenueManual[]>
       create(ctx: ExecutionContext, data: CreateRevenueManualDTO): Promise<RevenueManual>
+    }
+    salaryRegister: {
+      getAll(ctx: ExecutionContext): Promise<SalaryRegister[]>
+      create(ctx: ExecutionContext, data: CreateSalaryRegisterDTO): Promise<SalaryRegister>
     }
   }
 

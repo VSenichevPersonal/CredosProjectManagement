@@ -339,6 +339,30 @@ export interface RevenueFilters {
   dateTo?: string
 }
 
+// Salary register
+export interface SalaryRegister {
+  id: string
+  periodStart: string
+  periodEnd: string
+  employeeId?: string
+  directionId?: string
+  amount: number
+  source: string
+  description?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateSalaryRegisterDTO {
+  periodStart: string
+  periodEnd: string
+  employeeId?: string
+  directionId?: string
+  amount: number
+  source?: string
+  description?: string
+}
+
 // Filters for queries
 export interface ProjectFilters {
   directionId?: string
