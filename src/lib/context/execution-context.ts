@@ -1,31 +1,44 @@
 /**
- * ExecutionContext
- * 
- * Provides execution context for all operations in Credos Project Management.
- * Contains user information, permissions, and tenant isolation.
+ * @intent: Single source of truth for all execution dependencies
+ * @llm-note: This object is passed to every service and contains all runtime state
+ * @architecture: Core pattern - all business logic depends on this context
  */
 
 import type { Employee } from '@/types/domain'
+import type { DatabaseProvider } from '@/providers/database-provider.interface'
+
+export interface Logger {
+  info(message: string, meta?: any): void
+  warn(message: string, meta?: any): void
+  error(message: string, meta?: any): void
+  debug(message: string, meta?: any): void
+}
+
+export interface AccessControlService {
+  require(permission: Permission): Promise<void>
+  check(permission: Permission): boolean
+  hasRole(role: UserRole): boolean
+}
 
 export interface ExecutionContext {
-  // User identity
+  // User context
+  user: Employee
   userId: string
   employeeId: string
   
-  // Employee information
-  employee: Employee
+  // Infrastructure providers
+  db: DatabaseProvider
   
-  // Permissions and roles
-  roles: UserRole[]
-  permissions: Permission[]
-  
-  // Organization context
-  directionId?: string
-  managerId?: string
+  // Business services
+  logger: Logger
+  access: AccessControlService
   
   // Request metadata
   requestId: string
   timestamp: Date
+  
+  // Request object (for headers, etc.)
+  request?: Request
 }
 
 export type UserRole = 

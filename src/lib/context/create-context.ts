@@ -5,10 +5,19 @@
  * Handles authentication, authorization, and user context setup.
  */
 
+/**
+ * @intent: Factory for creating ExecutionContext from Next.js request
+ * @llm-note: Creates complete context with all dependencies
+ * @architecture: Core pattern - all API routes start here
+ */
+
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import type { ExecutionContext, UserRole, Permission } from './execution-context'
 import type { Employee } from '@/types/domain'
+import { AccessControlServiceImpl } from '@/lib/services/access-control-service'
+import { LoggerServiceImpl } from '@/lib/services/logger-service'
+import { getDatabaseProvider } from '@/providers/provider-factory'
 
 export async function createExecutionContext(request: NextRequest): Promise<ExecutionContext> {
   const supabase = createServerClient()
@@ -48,16 +57,21 @@ export async function createExecutionContext(request: NextRequest): Promise<Exec
   // Generate request ID for tracking
   const requestId = generateRequestId()
   
+  // Create services
+  const logger = new LoggerServiceImpl(`[${employee.email}]`)
+  const access = new AccessControlServiceImpl(roles, permissions)
+  const db = await getDatabaseProvider()
+
   return {
+    user: mapEmployeeFromDb(employee),
     userId: user.id,
     employeeId: employee.id,
-    employee: mapEmployeeFromDb(employee),
-    roles,
-    permissions,
-    directionId: employee.direction_id,
-    managerId: employee.manager_id,
+    db,
+    logger,
+    access,
     requestId,
-    timestamp: new Date()
+    timestamp: new Date(),
+    request
   }
 }
 

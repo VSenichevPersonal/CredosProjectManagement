@@ -26,6 +26,9 @@ export interface Direction {
   id: string
   name: string
   description?: string
+  managerId: string
+  manager?: Employee
+  budget?: number
   color: string // Business color from tailwind config
   isActive: boolean
   createdAt: string
