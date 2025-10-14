@@ -1,8 +1,12 @@
+require('dotenv').config({ path: '.env.local' });
+
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
 async function runMigrations() {
+  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'установлен' : 'НЕ НАЙДЕН');
+  
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
   });
