@@ -16,6 +16,9 @@ import {
   Calendar,
   Target,
   TrendingUp,
+  BarChart3,
+  Settings,
+  Book,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -61,6 +64,23 @@ const navigationGroups = [
     icon: Users,
     items: [
       { name: "Сотрудники", href: "/employees", icon: Users },
+    ],
+  },
+  {
+    id: "analytics",
+    name: "Аналитика",
+    icon: BarChart3,
+    items: [
+      { name: "Рентабельность", href: "/analytics/profitability", icon: TrendingUp },
+    ],
+  },
+  {
+    id: "admin",
+    name: "Администрирование",
+    icon: Settings,
+    items: [
+      { name: "Справочники", href: "/admin/dictionaries", icon: Book },
+      { name: "Финансовые регистры", href: "/admin/finance", icon: DollarSign },
     ],
   },
   {
