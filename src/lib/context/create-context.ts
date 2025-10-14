@@ -123,24 +123,14 @@ function mapEmployeeFromDb(dbEmployee: any): Employee {
       id: dbEmployee.direction.id,
       name: dbEmployee.direction.name,
       description: dbEmployee.direction.description,
+      budget: dbEmployee.direction.budget,
+      budgetThreshold: dbEmployee.direction.budget_threshold,
       color: dbEmployee.direction.color,
       isActive: dbEmployee.direction.is_active,
       createdAt: dbEmployee.direction.created_at,
       updatedAt: dbEmployee.direction.updated_at
     } : undefined,
-    managerId: dbEmployee.manager_id,
-    manager: dbEmployee.manager ? {
-      id: dbEmployee.manager.id,
-      email: dbEmployee.manager.email,
-      fullName: dbEmployee.manager.full_name,
-      position: dbEmployee.manager.position,
-      directionId: dbEmployee.manager.direction_id,
-      hourlyRate: dbEmployee.manager.hourly_rate,
-      isActive: dbEmployee.manager.is_active,
-      createdAt: dbEmployee.manager.created_at,
-      updatedAt: dbEmployee.manager.updated_at
-    } : undefined,
-    hourlyRate: dbEmployee.hourly_rate,
+    defaultHourlyRate: dbEmployee.hourly_rate,
     isActive: dbEmployee.is_active,
     createdAt: dbEmployee.created_at,
     updatedAt: dbEmployee.updated_at

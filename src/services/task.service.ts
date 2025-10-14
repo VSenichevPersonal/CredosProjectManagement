@@ -49,11 +49,11 @@ export class TaskService {
    */
   async getAllTasks(ctx: ExecutionContext, filters?: TaskFilters): Promise<Task[]> {
     // Проверяем права доступа
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задач');
     }
 
-    const tasks = await this.db.tasks.getAll(ctx);
+    const tasks = await ctx.db.tasks.getAll(ctx);
     
     // Применяем фильтры
     let filteredTasks = tasks;
@@ -89,45 +89,45 @@ export class TaskService {
    * Получить задачу по ID
    */
   async getTaskById(ctx: ExecutionContext, id: string): Promise<Task | null> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задачи');
     }
 
-    return await this.db.tasks.getById(ctx, id);
+    return await ctx.db.tasks.getById(ctx, id);
   }
 
   /**
    * Получить задачи по проекту
    */
   async getTasksByProject(ctx: ExecutionContext, projectId: string): Promise<Task[]> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задач');
     }
 
-    return await this.db.tasks.getByProjectId(ctx, projectId);
+    return await ctx.db.tasks.getByProject(ctx, projectId);
   }
 
   /**
    * Получить задачи сотрудника
    */
   async getTasksByAssignee(ctx: ExecutionContext, assigneeId: string): Promise<Task[]> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задач');
     }
 
     // Сотрудник может видеть только свои задачи, менеджеры - все
-    if (ctx.user.id !== assigneeId && !ctx.permissions.includes('tasks:read_all')) {
+    if (ctx.user.id !== assigneeId && !ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра чужих задач');
     }
 
-    return await this.db.tasks.getByAssigneeId(ctx, assigneeId);
+    return await ctx.db.tasks.getByAssignee(ctx, assigneeId);
   }
 
   /**
    * Создать новую задачу
    */
   async createTask(ctx: ExecutionContext, dto: CreateTaskDTO): Promise<Task> {
-    if (!ctx.permissions.includes('tasks:create')) {
+    if (!ctx.access.check('tasks:create')) {
       throw new Error('Недостаточно прав для создания задачи');
     }
 
@@ -136,18 +136,18 @@ export class TaskService {
       throw new Error('Оценочное время должно быть положительным');
     }
 
-    if (dto.dueDate && dto.dueDate < new Date()) {
+    if (dto.dueDate && new Date(dto.dueDate) < new Date()) {
       throw new Error('Срок выполнения не может быть в прошлом');
     }
 
     // Проверяем существование проекта
-    const project = await this.db.projects.getById(ctx, dto.projectId);
+    const project = await ctx.db.projects.getById(ctx, dto.projectId);
     if (!project) {
       throw new Error('Проект не найден');
     }
 
     // Проверяем существование исполнителя
-    const assignee = await this.db.employees.getById(ctx, dto.assigneeId);
+    const assignee = await ctx.db.employees.getById(ctx, dto.assigneeId);
     if (!assignee) {
       throw new Error('Исполнитель не найден');
     }
@@ -171,24 +171,24 @@ export class TaskService {
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.tasks.create(ctx, task);
+    return await ctx.db.tasks.create(ctx, task);
   }
 
   /**
    * Обновить задачу
    */
   async updateTask(ctx: ExecutionContext, id: string, dto: UpdateTaskDTO): Promise<Task> {
-    if (!ctx.permissions.includes('tasks:update')) {
+    if (!ctx.access.check('tasks:update')) {
       throw new Error('Недостаточно прав для обновления задачи');
     }
 
-    const existingTask = await this.db.tasks.getById(ctx, id);
+    const existingTask = await ctx.db.tasks.getById(ctx, id);
     if (!existingTask) {
       throw new Error('Задача не найдена');
     }
 
     // Сотрудник может обновлять только свои задачи
-    if (ctx.user.id !== existingTask.assigneeId && !ctx.permissions.includes('tasks:update_all')) {
+    if (ctx.user.id !== existingTask.assigneeId && !ctx.access.check('tasks:update')) {
       throw new Error('Недостаточно прав для обновления чужих задач');
     }
 
@@ -197,13 +197,13 @@ export class TaskService {
       throw new Error('Оценочное время должно быть положительным');
     }
 
-    if (dto.dueDate && dto.dueDate < new Date()) {
+    if (dto.dueDate && new Date(dto.dueDate) < new Date()) {
       throw new Error('Срок выполнения не может быть в прошлом');
     }
 
     // Проверяем существование исполнителя, если он обновляется
     if (dto.assigneeId && dto.assigneeId !== existingTask.assigneeId) {
-      const assignee = await this.db.employees.getById(ctx, dto.assigneeId);
+      const assignee = await ctx.db.employees.getById(ctx, dto.assigneeId);
       if (!assignee) {
         throw new Error('Исполнитель не найден');
       }
@@ -219,46 +219,46 @@ export class TaskService {
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.tasks.update(ctx, id, updatedTask);
+    return await ctx.db.tasks.update(ctx, id, updatedTask);
   }
 
   /**
    * Удалить задачу
    */
   async deleteTask(ctx: ExecutionContext, id: string): Promise<void> {
-    if (!ctx.permissions.includes('tasks:delete')) {
+    if (!ctx.access.check('tasks:delete')) {
       throw new Error('Недостаточно прав для удаления задачи');
     }
 
-    const task = await this.db.tasks.getById(ctx, id);
+    const task = await ctx.db.tasks.getById(ctx, id);
     if (!task) {
       throw new Error('Задача не найдена');
     }
 
     // Проверяем, есть ли трудозатраты по задаче
-    const timeEntries = await this.db.timeEntries.getByTaskId(ctx, id);
+    const timeEntries = await ctx.db.timeEntries.getByTask(ctx, id);
     if (timeEntries.length > 0) {
       throw new Error('Нельзя удалить задачу с зарегистрированными трудозатратами');
     }
 
-    await this.db.tasks.delete(ctx, id);
+    await ctx.db.tasks.delete(ctx, id);
   }
 
   /**
    * Изменить статус задачи
    */
   async updateTaskStatus(ctx: ExecutionContext, id: string, status: Task['status']): Promise<Task> {
-    if (!ctx.permissions.includes('tasks:update')) {
+    if (!ctx.access.check('tasks:update')) {
       throw new Error('Недостаточно прав для обновления статуса задачи');
     }
 
-    const task = await this.db.tasks.getById(ctx, id);
+    const task = await ctx.db.tasks.getById(ctx, id);
     if (!task) {
       throw new Error('Задача не найдена');
     }
 
     // Сотрудник может обновлять только свои задачи
-    if (ctx.user.id !== task.assigneeId && !ctx.permissions.includes('tasks:update_all')) {
+    if (ctx.user.id !== task.assigneeId && !ctx.access.check('tasks:update')) {
       throw new Error('Недостаточно прав для обновления статуса задачи');
     }
 
@@ -268,7 +268,7 @@ export class TaskService {
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.tasks.update(ctx, id, updatedTask);
+    return await ctx.db.tasks.update(ctx, id, updatedTask);
   }
 
   /**
@@ -280,11 +280,11 @@ export class TaskService {
     dateFrom?: Date;
     dateTo?: Date;
   }): Promise<TaskStats> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра статистики');
     }
 
-    let tasks = await this.db.tasks.getAll(ctx);
+    let tasks = await ctx.db.tasks.getAll(ctx);
     
     // Применяем фильтры
     if (filters?.projectId) {
@@ -296,11 +296,11 @@ export class TaskService {
     }
     
     if (filters?.dateFrom) {
-      tasks = tasks.filter(t => t.createdAt >= filters.dateFrom!);
+      tasks = tasks.filter(t => new Date(t.createdAt) >= new Date(filters.dateFrom!));
     }
     
     if (filters?.dateTo) {
-      tasks = tasks.filter(t => t.createdAt <= filters.dateTo!);
+      tasks = tasks.filter(t => new Date(t.createdAt) <= new Date(filters.dateTo!));
     }
 
     const totalTasks = tasks.length;
@@ -340,11 +340,11 @@ export class TaskService {
    * Получить просроченные задачи
    */
   async getOverdueTasks(ctx: ExecutionContext): Promise<Task[]> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задач');
     }
 
-    const tasks = await this.db.tasks.getAll(ctx);
+    const tasks = await ctx.db.tasks.getAll(ctx);
     const now = new Date();
     
     return tasks.filter(t => 
@@ -356,11 +356,11 @@ export class TaskService {
    * Получить задачи с высоким приоритетом
    */
   async getHighPriorityTasks(ctx: ExecutionContext): Promise<Task[]> {
-    if (!ctx.permissions.includes('tasks:read')) {
+    if (!ctx.access.check('tasks:read')) {
       throw new Error('Недостаточно прав для просмотра задач');
     }
 
-    const tasks = await this.db.tasks.getAll(ctx);
+    const tasks = await ctx.db.tasks.getAll(ctx);
     
     return tasks.filter(t => 
       (t.priority === 'high' || t.priority === 'critical') && 

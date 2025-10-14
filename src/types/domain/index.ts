@@ -9,16 +9,39 @@
 export interface Employee {
   id: string
   email: string
-  fullName: string
+  fullName: string // Для интеграции с 1С
   position: string
   directionId: string
   direction?: Direction
-  managerId?: string
-  manager?: Employee
-  hourlyRate: number
+  defaultHourlyRate: number // Базовая ставка
   isActive: boolean
   createdAt: string
   updatedAt: string
+}
+
+// Иерархия сотрудников
+export interface EmployeeHierarchy {
+  id: string
+  employeeId: string
+  employee?: Employee
+  managerId: string
+  manager?: Employee
+  level: number
+  isDirect: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Роли пользователей
+export interface UserRole {
+  id: string
+  employeeId: string
+  employee?: Employee
+  role: UserRoleType
+  grantedBy?: string
+  grantedByEmployee?: Employee
+  grantedAt: string
+  isActive: boolean
 }
 
 // Direction domain (ИБ, ПИБ, ТЦ, Аудит, HR, Финансы)
@@ -26,10 +49,9 @@ export interface Direction {
   id: string
   name: string
   description?: string
-  managerId: string
-  manager?: Employee
-  budget?: number
-  color: string // Business color from tailwind config
+  budget?: number // План бюджета
+  budgetThreshold?: number // Лимит превышения (например, 110% от плана)
+  color: string // Фиксированный набор цветов
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -42,15 +64,62 @@ export interface Project {
   description?: string
   directionId: string
   direction?: Direction
-  managerId: string
+  managerId: string // Руководитель проекта
   manager?: Employee
   status: ProjectStatus
   priority: Priority
   startDate?: string
   endDate?: string
-  budget?: number
+  totalBudget?: number // Общий бюджет
+  currentSpent: number // Текущие затраты
   createdAt: string
   updatedAt: string
+}
+
+// Фазы проекта (опционально)
+export interface ProjectPhase {
+  id: string
+  projectId: string
+  project?: Project
+  name: string
+  description?: string
+  phaseOrder: number // Порядок фазы в проекте
+  startDate?: string
+  endDate?: string
+  budget?: number // Бюджет фазы
+  status: PhaseStatus
+  createdAt: string
+  updatedAt: string
+}
+
+// Команда проекта
+export interface ProjectTeam {
+  id: string
+  projectId: string
+  project?: Project
+  employeeId: string
+  employee?: Employee
+  role: ProjectTeamRole
+  allocatedHours?: number // Планируемые часы участия
+  actualHours: number // Фактические часы
+  joinedAt: string
+  leftAt?: string
+  isActive: boolean
+}
+
+// Ставки по проектам
+export interface ProjectHourlyRate {
+  id: string
+  projectId: string
+  project?: Project
+  employeeId: string
+  employee?: Employee
+  hourlyRate: number // Ставка для этого проекта
+  effectiveFrom: string
+  effectiveTo?: string
+  createdBy?: string
+  createdByEmployee?: Employee
+  createdAt: string
 }
 
 // Task domain
@@ -71,22 +140,51 @@ export interface Task {
   updatedAt: string
 }
 
-// Time Entry domain (трудозатраты)
+// Time Entry domain (трудозатраты) - ОБНОВЛЕНО
 export interface TimeEntry {
   id: string
   employeeId: string
   employee?: Employee
-  taskId: string
-  task?: Task
+  projectId: string
+  project?: Project
+  phaseId?: string // Опционально
+  phase?: ProjectPhase
   date: string
-  hours: number
+  hours: number // До часов, точность 0.25
   description?: string
   status: TimeEntryStatus
-  approvedBy?: string
+  approvedBy?: string // Руководитель проекта
   approvedByEmployee?: Employee
   approvedAt?: string
+  rejectionReason?: string
   createdAt: string
   updatedAt: string
+}
+
+// Групповые утверждения
+export interface BatchApproval {
+  id: string
+  approverId: string
+  approver?: Employee
+  projectId?: string
+  project?: Project
+  approvalType: BatchApprovalType
+  status: BatchApprovalStatus
+  notes?: string
+  approvedAt?: string
+  rejectedAt?: string
+  createdAt: string
+}
+
+// Элементы группового утверждения
+export interface BatchApprovalItem {
+  id: string
+  batchId: string
+  batch?: BatchApproval
+  timeEntryId: string
+  timeEntry?: TimeEntry
+  status: BatchApprovalStatus
+  notes?: string
 }
 
 // Enums
@@ -94,6 +192,13 @@ export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'c
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done'
 export type TimeEntryStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
 export type Priority = 'low' | 'medium' | 'high' | 'critical'
+
+// Новые типы
+export type UserRoleType = 'admin' | 'manager' | 'project_manager' | 'employee' | 'hr' | 'finance'
+export type PhaseStatus = 'planned' | 'active' | 'completed' | 'cancelled'
+export type ProjectTeamRole = 'member' | 'lead' | 'consultant'
+export type BatchApprovalType = 'time_entries' | 'expenses' | 'other'
+export type BatchApprovalStatus = 'pending' | 'approved' | 'rejected'
 
 // Extended types with computed fields
 export interface ProjectWithMetrics extends Project {
@@ -118,6 +223,24 @@ export interface DirectionWithMetrics extends Direction {
 }
 
 // DTOs for API operations
+export interface CreateDirectionDTO {
+  name: string
+  description?: string
+  budget?: number
+  budgetThreshold?: number
+  color?: string
+  isActive?: boolean
+}
+
+export interface UpdateDirectionDTO {
+  name?: string
+  description?: string
+  budget?: number
+  budgetThreshold?: number
+  color?: string
+  isActive?: boolean
+}
+
 export interface CreateProjectDTO {
   name: string
   description?: string
@@ -164,7 +287,8 @@ export interface UpdateTaskDTO {
 
 export interface CreateTimeEntryDTO {
   employeeId: string
-  taskId: string
+  projectId: string
+  phaseId?: string // Опционально
   date: string
   hours: number
   description?: string
@@ -178,9 +302,8 @@ export interface UpdateTimeEntryDTO {
 }
 
 export interface ApproveTimeEntryDTO {
-  timeEntryIds: string[]
-  approvedBy: string
-  notes?: string
+  approved: boolean
+  rejectionReason?: string
 }
 
 // Filters for queries

@@ -5,7 +5,7 @@
  */
 
 import type { DatabaseProvider } from './database-provider.interface'
-import { SimpleProvider } from './simple-provider'
+import { SimpleDatabaseProvider } from './simple-provider'
 
 export type DatabaseProviderType = "simple" | "supabase" | "mock"
 
@@ -13,7 +13,7 @@ export class ProviderFactory {
   static create(provider: DatabaseProviderType = "simple"): DatabaseProvider {
     switch (provider) {
       case "simple":
-        return new SimpleProvider()
+        return new SimpleDatabaseProvider()
 
       case "supabase":
         // TODO: Implement Supabase provider
@@ -33,7 +33,7 @@ export class ProviderFactory {
 
     // Check Simple provider
     try {
-      const simple = new SimpleProvider()
+      const simple = new SimpleDatabaseProvider()
       // Simple provider is always available
       providers.push("simple")
     } catch (error) {

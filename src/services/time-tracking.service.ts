@@ -1,11 +1,10 @@
 import { ExecutionContext } from '@/lib/context/execution-context';
 import { TimeEntry, CreateTimeEntryDTO, UpdateTimeEntryDTO, ApproveTimeEntryDTO } from '@/types/domain';
-import { DatabaseProvider } from '@/providers/database-provider.interface';
 
 export interface TimeEntryFilters {
   employeeId?: string;
   projectId?: string;
-  taskId?: string;
+  // taskId убрано - не используется по требованиям
   status?: 'draft' | 'submitted' | 'approved' | 'rejected';
   dateFrom?: string;
   dateTo?: string;
@@ -22,18 +21,15 @@ export interface TimeTrackingStats {
 }
 
 export class TimeTrackingService {
-  constructor(private db: DatabaseProvider) {}
 
   /**
-   * Получить все записи трудозатрат с фильтрацией
+   * Получить все записи трудозатрат с фильтрацией (для API)
    */
-  async getAllTimeEntries(ctx: ExecutionContext, filters?: TimeEntryFilters): Promise<TimeEntry[]> {
-    // Проверяем права доступа
-    if (!ctx.permissions.includes('time_entries:read')) {
-      throw new Error('Недостаточно прав для просмотра трудозатрат');
-    }
-
-    const timeEntries = await this.db.timeEntries.getAll(ctx);
+  static async getTimeEntries(ctx: ExecutionContext, filters?: any): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] getTimeEntries", { filters })
+    await ctx.access.require('time:read')
+    
+    const timeEntries = await ctx.db.timeEntries.getAll(ctx);
     
     // Применяем фильтры
     let filteredEntries = timeEntries;
@@ -46,9 +42,98 @@ export class TimeTrackingService {
       filteredEntries = filteredEntries.filter(entry => entry.projectId === filters.projectId);
     }
     
-    if (filters?.taskId) {
-      filteredEntries = filteredEntries.filter(entry => entry.taskId === filters.taskId);
+    // taskId убрано - не используется по требованиям
+    
+    if (filters?.dateFrom) {
+      filteredEntries = filteredEntries.filter(entry => entry.date >= filters.dateFrom);
     }
+    
+    if (filters?.dateTo) {
+      filteredEntries = filteredEntries.filter(entry => entry.date <= filters.dateTo);
+    }
+    
+    // Убрано поле billable - не нужно по требованиям
+    
+    ctx.logger.info("[TimeTrackingService] Time entries fetched", { count: filteredEntries.length })
+    return filteredEntries;
+  }
+
+  /**
+   * Создать запись времени (для API)
+   */
+  static async createTimeEntry(ctx: ExecutionContext, dto: any): Promise<TimeEntry> {
+    ctx.logger.info("[TimeTrackingService] createTimeEntry", { dto })
+    await ctx.access.require('time:create')
+    
+    // Валидация бизнес-правил
+    if (dto.hours <= 0 || dto.hours > 24) {
+      throw new Error('Количество часов должно быть от 0 до 24');
+    }
+
+    if (new Date(dto.date) > new Date()) {
+      throw new Error('Нельзя указывать трудозатраты на будущую дату');
+    }
+
+    const timeEntry: TimeEntry = {
+      id: crypto.randomUUID(),
+      employeeId: dto.employeeId,
+      projectId: dto.projectId,
+      phaseId: dto.phaseId,
+      date: dto.date,
+      hours: dto.hours,
+      description: dto.description,
+      status: 'submitted',
+      approvedBy: undefined,
+      approvedAt: undefined,
+      rejectionReason: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const createdEntry = await ctx.db.timeEntries.create(ctx, timeEntry);
+    ctx.logger.info("[TimeTrackingService] Time entry created", { id: createdEntry.id })
+    return createdEntry;
+  }
+
+  /**
+   * Создать множество записей времени (для API)
+   */
+  static async createBulkTimeEntries(ctx: ExecutionContext, entries: any[]): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] createBulkTimeEntries", { count: entries.length })
+    await ctx.access.require('time:create')
+    
+    const createdEntries: TimeEntry[] = [];
+    
+    for (const dto of entries) {
+      const entry = await TimeTrackingService.createTimeEntry(ctx, dto);
+      createdEntries.push(entry);
+    }
+    
+    ctx.logger.info("[TimeTrackingService] Bulk time entries created", { count: createdEntries.length })
+    return createdEntries;
+  }
+
+  /**
+   * Получить все записи трудозатрат с фильтрацией (legacy)
+   */
+  static async getAllTimeEntries(ctx: ExecutionContext, filters?: TimeEntryFilters): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] getAllTimeEntries", { filters })
+    await ctx.access.require('time:read')
+
+    const timeEntries = await ctx.db.timeEntries.getAll(ctx);
+    
+    // Применяем фильтры
+    let filteredEntries = timeEntries;
+    
+    if (filters?.employeeId) {
+      filteredEntries = filteredEntries.filter(entry => entry.employeeId === filters.employeeId);
+    }
+    
+    if (filters?.projectId) {
+      filteredEntries = filteredEntries.filter(entry => entry.projectId === filters.projectId);
+    }
+    
+    // taskId убрано - не используется по требованиям
     
     if (filters?.status) {
       filteredEntries = filteredEntries.filter(entry => entry.status === filters.status);
@@ -69,119 +154,49 @@ export class TimeTrackingService {
       );
     }
 
+    ctx.logger.info("[TimeTrackingService] Time entries fetched", { count: filteredEntries.length })
     return filteredEntries;
   }
 
   /**
    * Получить записи трудозатрат по сотруднику
    */
-  async getTimeEntriesByEmployee(ctx: ExecutionContext, employeeId: string): Promise<TimeEntry[]> {
-    if (!ctx.permissions.includes('time_entries:read')) {
-      throw new Error('Недостаточно прав для просмотра трудозатрат');
-    }
+  static async getTimeEntriesByEmployee(ctx: ExecutionContext, employeeId: string): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] getTimeEntriesByEmployee", { employeeId })
+    await ctx.access.require('time:read')
 
     // Сотрудник может видеть только свои записи, менеджеры - всех
-    if (ctx.user.id !== employeeId && !ctx.permissions.includes('time_entries:read_all')) {
+    if (ctx.user.id !== employeeId && !ctx.access.check('time:read')) {
       throw new Error('Недостаточно прав для просмотра чужих трудозатрат');
     }
 
-    return await this.db.timeEntries.getByEmployeeId(ctx, employeeId);
+    return await ctx.db.timeEntries.getByEmployee(ctx, employeeId);
   }
 
   /**
    * Получить записи трудозатрат по проекту
    */
-  async getTimeEntriesByProject(ctx: ExecutionContext, projectId: string): Promise<TimeEntry[]> {
-    if (!ctx.permissions.includes('time_entries:read')) {
-      throw new Error('Недостаточно прав для просмотра трудозатрат');
-    }
+  static async getTimeEntriesByProject(ctx: ExecutionContext, projectId: string): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] getTimeEntriesByProject", { projectId })
+    await ctx.access.require('time:read')
 
-    return await this.db.timeEntries.getByProjectId(ctx, projectId);
-  }
-
-  /**
-   * Создать новую запись трудозатрат
-   */
-  async createTimeEntry(ctx: ExecutionContext, dto: CreateTimeEntryDTO): Promise<TimeEntry> {
-    if (!ctx.permissions.includes('time_entries:create')) {
-      throw new Error('Недостаточно прав для создания записи трудозатрат');
-    }
-
-    // Валидация бизнес-правил
-    if (dto.hours <= 0 || dto.hours > 24) {
-      throw new Error('Количество часов должно быть от 0 до 24');
-    }
-
-    if (new Date(dto.date) > new Date()) {
-      throw new Error('Нельзя указывать трудозатраты на будущую дату');
-    }
-
-    // Проверяем существование проекта
-    const project = await this.db.projects.getById(ctx, dto.projectId);
-    if (!project) {
-      throw new Error('Проект не найден');
-    }
-
-    // Проверяем существование задачи, если указана
-    if (dto.taskId) {
-      const task = await this.db.tasks.getById(ctx, dto.taskId);
-      if (!task) {
-        throw new Error('Задача не найдена');
-      }
-    }
-
-    // Проверяем, что сотрудник существует
-    const employee = await this.db.employees.getById(ctx, dto.employeeId);
-    if (!employee) {
-      throw new Error('Сотрудник не найден');
-    }
-
-    // Проверяем дублирование записей на одну дату
-    const existingEntries = await this.db.timeEntries.getByEmployeeId(ctx, dto.employeeId);
-    const duplicateEntry = existingEntries.find(entry => 
-      entry.date === dto.date && 
-      entry.projectId === dto.projectId &&
-      entry.taskId === dto.taskId
-    );
-
-    if (duplicateEntry) {
-      throw new Error('Запись трудозатрат на эту дату и проект уже существует');
-    }
-
-    const timeEntry: TimeEntry = {
-      id: crypto.randomUUID(),
-      employeeId: dto.employeeId,
-      projectId: dto.projectId,
-      taskId: dto.taskId,
-      date: dto.date,
-      hours: dto.hours,
-      description: dto.description,
-      status: 'submitted',
-      approvedBy: null,
-      approvedAt: null,
-      rejectionReason: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return await this.db.timeEntries.create(ctx, timeEntry);
+    return await ctx.db.timeEntries.getByTask(ctx, projectId);
   }
 
   /**
    * Обновить запись трудозатрат
    */
-  async updateTimeEntry(ctx: ExecutionContext, id: string, dto: UpdateTimeEntryDTO): Promise<TimeEntry> {
-    if (!ctx.permissions.includes('time_entries:update')) {
-      throw new Error('Недостаточно прав для обновления записи трудозатрат');
-    }
+  static async updateTimeEntry(ctx: ExecutionContext, id: string, dto: UpdateTimeEntryDTO): Promise<TimeEntry> {
+    ctx.logger.info("[TimeTrackingService] updateTimeEntry", { id, dto })
+    await ctx.access.require('time:update')
 
-    const existingEntry = await this.db.timeEntries.getById(ctx, id);
+    const existingEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!existingEntry) {
       throw new Error('Запись трудозатрат не найдена');
     }
 
     // Сотрудник может обновлять только свои записи
-    if (ctx.user.id !== existingEntry.employeeId && !ctx.permissions.includes('time_entries:update_all')) {
+    if (ctx.user.id !== existingEntry.employeeId && !ctx.access.check('time:update')) {
       throw new Error('Недостаточно прав для обновления чужих записей');
     }
 
@@ -195,7 +210,7 @@ export class TimeTrackingService {
       throw new Error('Количество часов должно быть от 0 до 24');
     }
 
-    if (dto.date && dto.date > new Date()) {
+    if (dto.date && new Date(dto.date) > new Date()) {
       throw new Error('Нельзя указывать трудозатраты на будущую дату');
     }
 
@@ -205,24 +220,25 @@ export class TimeTrackingService {
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.timeEntries.update(ctx, id, updatedEntry);
+    const result = await ctx.db.timeEntries.update(ctx, id, updatedEntry);
+    ctx.logger.info("[TimeTrackingService] Time entry updated", { id })
+    return result;
   }
 
   /**
    * Удалить запись трудозатрат
    */
-  async deleteTimeEntry(ctx: ExecutionContext, id: string): Promise<void> {
-    if (!ctx.permissions.includes('time_entries:delete')) {
-      throw new Error('Недостаточно прав для удаления записи трудозатрат');
-    }
+  static async deleteTimeEntry(ctx: ExecutionContext, id: string): Promise<void> {
+    ctx.logger.info("[TimeTrackingService] deleteTimeEntry", { id })
+    await ctx.access.require('time:delete')
 
-    const timeEntry = await this.db.timeEntries.getById(ctx, id);
+    const timeEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!timeEntry) {
       throw new Error('Запись трудозатрат не найдена');
     }
 
     // Сотрудник может удалять только свои записи
-    if (ctx.user.id !== timeEntry.employeeId && !ctx.permissions.includes('time_entries:delete_all')) {
+    if (ctx.user.id !== timeEntry.employeeId && !ctx.access.check('time:delete')) {
       throw new Error('Недостаточно прав для удаления чужих записей');
     }
 
@@ -231,23 +247,23 @@ export class TimeTrackingService {
       throw new Error('Нельзя удалять утвержденные записи трудозатрат');
     }
 
-    await this.db.timeEntries.delete(ctx, id);
+    await ctx.db.timeEntries.delete(ctx, id);
+    ctx.logger.info("[TimeTrackingService] Time entry deleted", { id })
   }
 
   /**
    * Утвердить запись трудозатрат
    */
-  async approveTimeEntry(ctx: ExecutionContext, id: string, dto: ApproveTimeEntryDTO): Promise<TimeEntry> {
-    if (!ctx.permissions.includes('time_entries:approve')) {
-      throw new Error('Недостаточно прав для утверждения трудозатрат');
-    }
+  static async approveTimeEntry(ctx: ExecutionContext, id: string, dto: ApproveTimeEntryDTO): Promise<TimeEntry> {
+    ctx.logger.info("[TimeTrackingService] approveTimeEntry", { id, dto })
+    await ctx.access.require('time:approve')
 
-    const timeEntry = await this.db.timeEntries.getById(ctx, id);
+    const timeEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!timeEntry) {
       throw new Error('Запись трудозатрат не найдена');
     }
 
-    if (timeEntry.status !== 'pending') {
+    if (timeEntry.status !== 'submitted') {
       throw new Error('Можно утверждать только записи со статусом "ожидает"');
     }
 
@@ -256,65 +272,71 @@ export class TimeTrackingService {
       status: dto.approved ? 'approved' : 'rejected',
       approvedBy: ctx.user.id,
       approvedAt: new Date().toISOString(),
-      rejectionReason: dto.approved ? null : dto.rejectionReason,
+      rejectionReason: dto.approved ? undefined : dto.rejectionReason,
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.timeEntries.update(ctx, id, updatedEntry);
+    const result = await ctx.db.timeEntries.update(ctx, id, updatedEntry);
+    ctx.logger.info("[TimeTrackingService] Time entry approved/rejected", { id, approved: dto.approved })
+    return result;
   }
 
   /**
    * Получить статистику по трудозатратам
    */
-  async getTimeTrackingStats(ctx: ExecutionContext, filters?: {
+  static async getTimeTrackingStats(ctx: ExecutionContext, filters?: {
     employeeId?: string;
     projectId?: string;
-    dateFrom?: Date;
-    dateTo?: Date;
+    dateFrom?: string;
+    dateTo?: string;
   }): Promise<TimeTrackingStats> {
-    if (!ctx.permissions.includes('time_entries:read')) {
-      throw new Error('Недостаточно прав для просмотра статистики');
-    }
+    ctx.logger.info("[TimeTrackingService] getTimeTrackingStats", { filters })
+    await ctx.access.require('time:read')
 
-    const timeEntries = await this.getAllTimeEntries(ctx, filters);
+    const timeEntries = await TimeTrackingService.getAllTimeEntries(ctx, filters);
     
     const totalHours = timeEntries.reduce((sum, entry) => sum + entry.hours, 0);
     const approvedHours = timeEntries
       .filter(entry => entry.status === 'approved')
       .reduce((sum, entry) => sum + entry.hours, 0);
-    const pendingHours = timeEntries
-      .filter(entry => entry.status === 'pending')
+    const submittedHours = timeEntries
+      .filter(entry => entry.status === 'submitted')
       .reduce((sum, entry) => sum + entry.hours, 0);
     const rejectedHours = timeEntries
       .filter(entry => entry.status === 'rejected')
       .reduce((sum, entry) => sum + entry.hours, 0);
 
     // Вычисляем среднее количество часов в день
-    const dateRange = filters?.dateFrom && filters?.dateTo 
-      ? Math.ceil((filters.dateTo.getTime() - filters.dateFrom.getTime()) / (1000 * 60 * 60 * 24))
+    const dateRange = filters?.dateFrom && filters?.dateTo
+      ? Math.ceil((new Date(filters.dateTo).getTime() - new Date(filters.dateFrom).getTime()) / (1000 * 60 * 60 * 24))
       : 30; // По умолчанию за последние 30 дней
     
     const averageHoursPerDay = dateRange > 0 ? totalHours / dateRange : 0;
 
-    return {
+    const stats = {
       totalHours,
       approvedHours,
-      pendingHours,
+      submittedHours: submittedHours,
       rejectedHours,
       averageHoursPerDay,
       totalEntries: timeEntries.length,
     };
+
+    ctx.logger.info("[TimeTrackingService] Stats calculated", stats)
+    return stats;
   }
 
   /**
    * Получить записи для утверждения
    */
-  async getPendingTimeEntries(ctx: ExecutionContext): Promise<TimeEntry[]> {
-    if (!ctx.permissions.includes('time_entries:approve')) {
-      throw new Error('Недостаточно прав для просмотра записей на утверждение');
-    }
+  static async getPendingTimeEntries(ctx: ExecutionContext): Promise<TimeEntry[]> {
+    ctx.logger.info("[TimeTrackingService] getPendingTimeEntries")
+    await ctx.access.require('time:approve')
 
-    const allEntries = await this.db.timeEntries.getAll(ctx);
-    return allEntries.filter(entry => entry.status === 'pending');
+    const allEntries = await ctx.db.timeEntries.getAll(ctx);
+    const submittedEntries = allEntries.filter(entry => entry.status === 'submitted');
+    
+    ctx.logger.info("[TimeTrackingService] Pending entries fetched", { count: submittedEntries.length })
+    return submittedEntries;
   }
 }

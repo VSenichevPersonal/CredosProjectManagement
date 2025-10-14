@@ -1,22 +1,10 @@
 import { ExecutionContext } from '@/lib/context/execution-context';
-import { Direction } from '@/types/domain';
+import { Direction, CreateDirectionDTO, UpdateDirectionDTO } from '@/types/domain';
 import { DatabaseProvider } from '@/providers/database-provider.interface';
 
-export interface CreateDirectionDTO {
-  name: string;
-  description?: string;
-  managerId: string;
-  budget?: number;
-  isActive: boolean;
-}
+// Re-export types
+export type { CreateDirectionDTO, UpdateDirectionDTO };
 
-export interface UpdateDirectionDTO {
-  name?: string;
-  description?: string;
-  managerId?: string;
-  budget?: number;
-  isActive?: boolean;
-}
 
 export interface DirectionFilters {
   isActive?: boolean;
@@ -39,7 +27,7 @@ export class DirectionService {
    */
   async getAllDirections(ctx: ExecutionContext, filters?: DirectionFilters): Promise<Direction[]> {
     // Проверяем права доступа
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра направлений');
     }
 
@@ -67,7 +55,7 @@ export class DirectionService {
    * Получить направление по ID
    */
   async getDirectionById(ctx: ExecutionContext, id: string): Promise<Direction | null> {
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра направления');
     }
 
@@ -78,7 +66,7 @@ export class DirectionService {
    * Создать новое направление
    */
   async createDirection(ctx: ExecutionContext, dto: CreateDirectionDTO): Promise<Direction> {
-    if (!ctx.permissions.includes('directions:create')) {
+    if (!ctx.access.check('directions:create')) {
       throw new Error('Недостаточно прав для создания направления');
     }
 
@@ -87,24 +75,16 @@ export class DirectionService {
       throw new Error('Бюджет не может быть отрицательным');
     }
 
-    // Проверяем существование менеджера
-    const manager = await this.db.employees.getById(ctx, dto.managerId);
-    if (!manager) {
-      throw new Error('Менеджер не найден');
-    }
-
-    // Проверяем, что менеджер активен
-    if (!manager.isActive) {
-      throw new Error('Нельзя назначить неактивного сотрудника менеджером направления');
-    }
+    // Менеджеры направлений теперь управляются через отдельную таблицу user_roles
 
     const direction: Direction = {
       id: crypto.randomUUID(),
       name: dto.name,
       description: dto.description,
-      managerId: dto.managerId,
       budget: dto.budget,
-      isActive: dto.isActive,
+      budgetThreshold: dto.budgetThreshold,
+      color: dto.color || 'blue',
+      isActive: dto.isActive ?? true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -116,7 +96,7 @@ export class DirectionService {
    * Обновить направление
    */
   async updateDirection(ctx: ExecutionContext, id: string, dto: UpdateDirectionDTO): Promise<Direction> {
-    if (!ctx.permissions.includes('directions:update')) {
+    if (!ctx.access.check('directions:update')) {
       throw new Error('Недостаточно прав для обновления направления');
     }
 
@@ -130,17 +110,7 @@ export class DirectionService {
       throw new Error('Бюджет не может быть отрицательным');
     }
 
-    // Проверяем существование менеджера, если он обновляется
-    if (dto.managerId && dto.managerId !== existingDirection.managerId) {
-      const manager = await this.db.employees.getById(ctx, dto.managerId);
-      if (!manager) {
-        throw new Error('Менеджер не найден');
-      }
-
-      if (!manager.isActive) {
-        throw new Error('Нельзя назначить неактивного сотрудника менеджером направления');
-      }
-    }
+    // Менеджеры направлений управляются через user_roles таблицу
 
     const updatedDirection: Direction = {
       ...existingDirection,
@@ -155,7 +125,7 @@ export class DirectionService {
    * Удалить направление
    */
   async deleteDirection(ctx: ExecutionContext, id: string): Promise<void> {
-    if (!ctx.permissions.includes('directions:delete')) {
+    if (!ctx.access.check('directions:delete')) {
       throw new Error('Недостаточно прав для удаления направления');
     }
 
@@ -181,7 +151,7 @@ export class DirectionService {
    * Получить статистику по направлениям
    */
   async getDirectionStats(ctx: ExecutionContext): Promise<DirectionStats> {
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра статистики');
     }
 
@@ -223,7 +193,7 @@ export class DirectionService {
     budgetRemaining: number;
     progress: number;
   }> {
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра статистики направления');
     }
 
@@ -269,7 +239,7 @@ export class DirectionService {
    * Получить проекты по направлению
    */
   async getProjectsByDirection(ctx: ExecutionContext, directionId: string): Promise<any[]> {
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра проектов направления');
     }
 
@@ -281,7 +251,7 @@ export class DirectionService {
    * Активировать/деактивировать направление
    */
   async toggleDirectionStatus(ctx: ExecutionContext, id: string): Promise<Direction> {
-    if (!ctx.permissions.includes('directions:update')) {
+    if (!ctx.access.check('directions:update')) {
       throw new Error('Недостаточно прав для изменения статуса направления');
     }
 
@@ -303,7 +273,7 @@ export class DirectionService {
    * Получить активные направления
    */
   async getActiveDirections(ctx: ExecutionContext): Promise<Direction[]> {
-    if (!ctx.permissions.includes('directions:read')) {
+    if (!ctx.access.check('directions:read')) {
       throw new Error('Недостаточно прав для просмотра направлений');
     }
 

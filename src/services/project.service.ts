@@ -136,7 +136,8 @@ export class ProjectService {
       priority: dto.priority,
       startDate: dto.startDate,
       endDate: dto.endDate,
-      budget: dto.budget,
+      totalBudget: dto.budget,
+      currentSpent: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -150,11 +151,11 @@ export class ProjectService {
    * Обновить проект
    */
   async updateProject(ctx: ExecutionContext, id: string, dto: UpdateProjectDTO): Promise<Project> {
-    if (!ctx.permissions.includes('projects:update')) {
+    if (!ctx.access.check('projects:update')) {
       throw new Error('Недостаточно прав для обновления проекта');
     }
 
-    const existingProject = await this.db.projects.getById(ctx, id);
+    const existingProject = await ctx.db.projects.getById(ctx, id);
     if (!existingProject) {
       throw new Error('Проект не найден');
     }
@@ -170,7 +171,7 @@ export class ProjectService {
 
     // Проверяем существование направления, если оно обновляется
     if (dto.directionId && dto.directionId !== existingProject.directionId) {
-      const direction = await this.db.directions.getById(ctx, dto.directionId);
+      const direction = await ctx.db.directions.getById(ctx, dto.directionId);
       if (!direction) {
         throw new Error('Направление не найдено');
       }
@@ -178,7 +179,7 @@ export class ProjectService {
 
     // Проверяем существование менеджера, если он обновляется
     if (dto.managerId && dto.managerId !== existingProject.managerId) {
-      const manager = await this.db.employees.getById(ctx, dto.managerId);
+      const manager = await ctx.db.employees.getById(ctx, dto.managerId);
       if (!manager) {
         throw new Error('Менеджер не найден');
       }
@@ -190,31 +191,31 @@ export class ProjectService {
       updatedAt: new Date().toISOString(),
     };
 
-    return await this.db.projects.update(ctx, id, updatedProject);
+    return await ctx.db.projects.update(ctx, id, updatedProject);
   }
 
   /**
    * Удалить проект
    */
   async deleteProject(ctx: ExecutionContext, id: string): Promise<void> {
-    if (!ctx.permissions.includes('projects:delete')) {
+    if (!ctx.access.check('projects:delete')) {
       throw new Error('Недостаточно прав для удаления проекта');
     }
 
-    const project = await this.db.projects.getById(ctx, id);
+    const project = await ctx.db.projects.getById(ctx, id);
     if (!project) {
       throw new Error('Проект не найден');
     }
 
     // Проверяем, есть ли активные задачи
-    const tasks = await this.db.tasks.getByProjectId(ctx, id);
-    const activeTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'pending');
+    const tasks = await ctx.db.tasks.getByProject(ctx, id);
+    const activeTasks = tasks.filter(t => t.status === 'in_progress' || t.status === 'todo');
     
     if (activeTasks.length > 0) {
       throw new Error('Нельзя удалить проект с активными задачами');
     }
 
-    await this.db.projects.delete(ctx, id);
+    await ctx.db.projects.delete(ctx, id);
   }
 
   /**
@@ -227,20 +228,20 @@ export class ProjectService {
     budgetUsed: number;
     progress: number;
   }> {
-    if (!ctx.permissions.includes('projects:read')) {
+    if (!ctx.access.check('projects:read')) {
       throw new Error('Недостаточно прав для просмотра статистики проекта');
     }
 
-    const project = await this.db.projects.getById(ctx, id);
+    const project = await ctx.db.projects.getById(ctx, id);
     if (!project) {
       throw new Error('Проект не найден');
     }
 
-    const tasks = await this.db.tasks.getByProjectId(ctx, id);
-    const timeEntries = await this.db.timeEntries.getByProjectId(ctx, id);
+    const tasks = await ctx.db.tasks.getByProject(ctx, id);
+    const timeEntries = await ctx.db.timeEntries.getAll(ctx, { projectId: id });
 
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
     const totalHours = timeEntries.reduce((sum, entry) => sum + entry.hours, 0);
     const budgetUsed = timeEntries.reduce((sum, entry) => sum + (entry.hours * 1000), 0); // Предполагаем 1000 руб/час
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;

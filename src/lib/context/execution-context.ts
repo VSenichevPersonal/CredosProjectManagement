@@ -147,19 +147,22 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 
 // Helper functions
 export function hasPermission(ctx: ExecutionContext, permission: Permission): boolean {
-  return ctx.permissions.includes(permission)
+  return ctx.access.check(permission)
 }
 
 export function hasRole(ctx: ExecutionContext, role: UserRole): boolean {
-  return ctx.roles.includes(role)
+  return ctx.access.hasRole(role)
 }
 
 export function canAccessEmployee(ctx: ExecutionContext, employeeId: string): boolean {
   // Admin can access everyone
   if (hasRole(ctx, 'admin')) return true
   
-  // Managers can access their team members
-  if (hasRole(ctx, 'manager') && ctx.employee.managerId === employeeId) return true
+  // Managers can access their team members (будет реализовано через employee_hierarchy)
+  if (hasRole(ctx, 'manager')) {
+    // TODO: Проверить иерархию через employee_hierarchy таблицу
+    return false // Временно отключено
+  }
   
   // Team leads can access their team
   if (hasRole(ctx, 'team_lead')) {

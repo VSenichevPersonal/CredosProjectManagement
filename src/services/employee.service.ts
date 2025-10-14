@@ -3,33 +3,25 @@ import { Employee } from '@/types/domain';
 import { DatabaseProvider } from '@/providers/database-provider.interface';
 
 export interface CreateEmployeeDTO {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   position: string;
-  department: string;
-  hireDate: Date;
-  salary?: number;
-  phone?: string;
-  avatar?: string;
-  isActive: boolean;
+  directionId: string;
+  defaultHourlyRate?: number;
+  isActive?: boolean;
 }
 
 export interface UpdateEmployeeDTO {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
   email?: string;
   position?: string;
-  department?: string;
-  hireDate?: Date;
-  salary?: number;
-  phone?: string;
-  avatar?: string;
+  directionId?: string;
+  defaultHourlyRate?: number;
   isActive?: boolean;
 }
 
 export interface EmployeeFilters {
-  department?: string;
+  directionId?: string;
   position?: string;
   isActive?: boolean;
   search?: string;
@@ -39,8 +31,8 @@ export interface EmployeeStats {
   totalEmployees: number;
   activeEmployees: number;
   inactiveEmployees: number;
-  averageSalary: number;
-  departmentsCount: number;
+  averageRate: number;
+  directionsCount: number;
 }
 
 export class EmployeeService {
@@ -51,7 +43,7 @@ export class EmployeeService {
    */
   async getAllEmployees(ctx: ExecutionContext, filters?: EmployeeFilters): Promise<Employee[]> {
     // Проверяем права доступа
-    if (!ctx.permissions.includes('employees:read')) {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра сотрудников');
     }
 
@@ -60,8 +52,8 @@ export class EmployeeService {
     // Применяем фильтры
     let filteredEmployees = employees;
     
-    if (filters?.department) {
-      filteredEmployees = filteredEmployees.filter(e => e.department === filters.department);
+    if (filters?.directionId) {
+      filteredEmployees = filteredEmployees.filter(e => e.directionId === filters.directionId);
     }
     
     if (filters?.position) {
@@ -75,8 +67,7 @@ export class EmployeeService {
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
       filteredEmployees = filteredEmployees.filter(e => 
-        e.firstName.toLowerCase().includes(searchLower) ||
-        e.lastName.toLowerCase().includes(searchLower) ||
+        e.fullName.toLowerCase().includes(searchLower) ||
         e.email.toLowerCase().includes(searchLower) ||
         e.position.toLowerCase().includes(searchLower)
       );
@@ -89,7 +80,7 @@ export class EmployeeService {
    * Получить сотрудника по ID
    */
   async getEmployeeById(ctx: ExecutionContext, id: string): Promise<Employee | null> {
-    if (!ctx.permissions.includes('employees:read')) {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра сотрудника');
     }
 
@@ -100,32 +91,31 @@ export class EmployeeService {
    * Получить сотрудника по email
    */
   async getEmployeeByEmail(ctx: ExecutionContext, email: string): Promise<Employee | null> {
-    if (!ctx.permissions.includes('employees:read')) {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра сотрудника');
     }
 
-    return await this.db.employees.getByEmail(ctx, email);
+    // TODO: Реализовать getByEmail в провайдере
+    const employees = await this.db.employees.getAll(ctx);
+    return employees.find(e => e.email === email) || null;
   }
 
   /**
    * Создать нового сотрудника
    */
   async createEmployee(ctx: ExecutionContext, dto: CreateEmployeeDTO): Promise<Employee> {
-    if (!ctx.permissions.includes('employees:create')) {
+    if (!ctx.access.check('employees:create')) {
       throw new Error('Недостаточно прав для создания сотрудника');
     }
 
     // Валидация бизнес-правил
-    if (dto.hireDate > new Date()) {
-      throw new Error('Дата приема на работу не может быть в будущем');
-    }
-
-    if (dto.salary && dto.salary < 0) {
-      throw new Error('Зарплата не может быть отрицательной');
+    if (dto.defaultHourlyRate && dto.defaultHourlyRate < 0) {
+      throw new Error('Почасовая ставка не может быть отрицательной');
     }
 
     // Проверяем уникальность email
-    const existingEmployee = await this.db.employees.getByEmail(ctx, dto.email);
+    const employees = await this.db.employees.getAll(ctx);
+    const existingEmployee = employees.find(e => e.email === dto.email);
     if (existingEmployee) {
       throw new Error('Сотрудник с таким email уже существует');
     }
@@ -138,16 +128,12 @@ export class EmployeeService {
 
     const employee: Employee = {
       id: crypto.randomUUID(),
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      fullName: dto.fullName,
       email: dto.email,
       position: dto.position,
-      department: dto.department,
-      hireDate: dto.hireDate,
-      salary: dto.salary,
-      phone: dto.phone,
-      avatar: dto.avatar,
-      isActive: dto.isActive,
+      directionId: dto.directionId,
+      defaultHourlyRate: dto.defaultHourlyRate ?? 0,
+      isActive: dto.isActive ?? true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -159,7 +145,7 @@ export class EmployeeService {
    * Обновить сотрудника
    */
   async updateEmployee(ctx: ExecutionContext, id: string, dto: UpdateEmployeeDTO): Promise<Employee> {
-    if (!ctx.permissions.includes('employees:update')) {
+    if (!ctx.access.check('employees:update')) {
       throw new Error('Недостаточно прав для обновления сотрудника');
     }
 
@@ -169,17 +155,14 @@ export class EmployeeService {
     }
 
     // Валидация бизнес-правил
-    if (dto.hireDate && dto.hireDate > new Date()) {
-      throw new Error('Дата приема на работу не может быть в будущем');
-    }
-
-    if (dto.salary && dto.salary < 0) {
-      throw new Error('Зарплата не может быть отрицательной');
+    if (dto.defaultHourlyRate && dto.defaultHourlyRate < 0) {
+      throw new Error('Почасовая ставка не может быть отрицательной');
     }
 
     // Проверяем уникальность email, если он обновляется
     if (dto.email && dto.email !== existingEmployee.email) {
-      const existingByEmail = await this.db.employees.getByEmail(ctx, dto.email);
+      const employees = await this.db.employees.getAll(ctx);
+      const existingByEmail = employees.find(e => e.email === dto.email);
       if (existingByEmail) {
         throw new Error('Сотрудник с таким email уже существует');
       }
@@ -204,7 +187,7 @@ export class EmployeeService {
    * Удалить сотрудника
    */
   async deleteEmployee(ctx: ExecutionContext, id: string): Promise<void> {
-    if (!ctx.permissions.includes('employees:delete')) {
+    if (!ctx.access.check('employees:delete')) {
       throw new Error('Недостаточно прав для удаления сотрудника');
     }
 
@@ -224,8 +207,8 @@ export class EmployeeService {
     }
 
     // Проверяем, есть ли незакрытые трудозатраты
-    const timeEntries = await this.db.timeEntries.getByEmployeeId(ctx, id);
-    const pendingTimeEntries = timeEntries.filter(entry => entry.status === 'pending');
+    const timeEntries = await this.db.timeEntries.getByEmployee(ctx, id);
+    const pendingTimeEntries = timeEntries.filter(entry => entry.status === 'submitted');
     
     if (pendingTimeEntries.length > 0) {
       throw new Error('Нельзя удалить сотрудника с незакрытыми трудозатратами');
@@ -238,7 +221,7 @@ export class EmployeeService {
    * Получить статистику по сотрудникам
    */
   async getEmployeeStats(ctx: ExecutionContext): Promise<EmployeeStats> {
-    if (!ctx.permissions.includes('employees:read')) {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра статистики');
     }
 
@@ -248,41 +231,41 @@ export class EmployeeService {
     const activeEmployees = employees.filter(e => e.isActive).length;
     const inactiveEmployees = totalEmployees - activeEmployees;
     
-    const employeesWithSalary = employees.filter(e => e.salary && e.salary > 0);
-    const averageSalary = employeesWithSalary.length > 0 
-      ? employeesWithSalary.reduce((sum, e) => sum + e.salary!, 0) / employeesWithSalary.length 
+    const employeesWithRate = employees.filter(e => e.defaultHourlyRate && e.defaultHourlyRate > 0);
+    const averageRate = employeesWithRate.length > 0
+      ? employeesWithRate.reduce((sum, e) => sum + e.defaultHourlyRate!, 0) / employeesWithRate.length
       : 0;
     
-    const departments = new Set(employees.map(e => e.department));
-    const departmentsCount = departments.size;
+    const directions = new Set(employees.map(e => e.directionId));
+    const directionsCount = directions.size;
 
     return {
       totalEmployees,
       activeEmployees,
       inactiveEmployees,
-      averageSalary,
-      departmentsCount,
+      averageRate,
+      directionsCount,
     };
   }
 
   /**
    * Получить список отделов
    */
-  async getDepartments(ctx: ExecutionContext): Promise<string[]> {
-    if (!ctx.permissions.includes('employees:read')) {
-      throw new Error('Недостаточно прав для просмотра отделов');
+  async getDirections(ctx: ExecutionContext): Promise<string[]> {
+    if (!ctx.access.check('employees:read')) {
+      throw new Error('Недостаточно прав для просмотра направлений');
     }
 
     const employees = await this.db.employees.getAll(ctx);
-    const departments = new Set(employees.map(e => e.department));
-    return Array.from(departments).sort();
+    const directions = new Set(employees.map(e => e.directionId));
+    return Array.from(directions).sort();
   }
 
   /**
    * Получить список должностей
    */
   async getPositions(ctx: ExecutionContext): Promise<string[]> {
-    if (!ctx.permissions.includes('employees:read')) {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра должностей');
     }
 
@@ -294,20 +277,20 @@ export class EmployeeService {
   /**
    * Получить сотрудников по отделу
    */
-  async getEmployeesByDepartment(ctx: ExecutionContext, department: string): Promise<Employee[]> {
-    if (!ctx.permissions.includes('employees:read')) {
+  async getEmployeesByDirection(ctx: ExecutionContext, directionId: string): Promise<Employee[]> {
+    if (!ctx.access.check('employees:read')) {
       throw new Error('Недостаточно прав для просмотра сотрудников');
     }
 
     const employees = await this.db.employees.getAll(ctx);
-    return employees.filter(e => e.department === department && e.isActive);
+    return employees.filter(e => e.directionId === directionId && e.isActive);
   }
 
   /**
    * Активировать/деактивировать сотрудника
    */
   async toggleEmployeeStatus(ctx: ExecutionContext, id: string): Promise<Employee> {
-    if (!ctx.permissions.includes('employees:update')) {
+    if (!ctx.access.check('employees:update')) {
       throw new Error('Недостаточно прав для изменения статуса сотрудника');
     }
 
