@@ -6,19 +6,20 @@
 
 import type { DatabaseProvider } from './database-provider.interface'
 import { SimpleDatabaseProvider } from './simple-provider'
-import { SupabaseDatabaseProvider } from './supabase-database-provider'
+import { PostgresDatabaseProvider } from './postgres-database-provider'
 
-export type DatabaseProviderType = "simple" | "supabase" | "mock"
+export type DatabaseProviderType = "postgres" | "simple" | "mock"
 
 export class ProviderFactory {
-  static create(provider: DatabaseProviderType = "supabase"): DatabaseProvider {
+  static create(provider: DatabaseProviderType = "postgres"): DatabaseProvider {
     switch (provider) {
+      case "postgres":
+        // Primary provider: Direct PostgreSQL connection
+        return new PostgresDatabaseProvider()
+
       case "simple":
         // Deprecated: Use for testing only
         return new SimpleDatabaseProvider()
-
-      case "supabase":
-        return new SupabaseDatabaseProvider()
 
       case "mock":
         // TODO: Implement Mock provider for testing
@@ -32,11 +33,11 @@ export class ProviderFactory {
   static async getAvailableProviders(): Promise<DatabaseProviderType[]> {
     const providers: DatabaseProviderType[] = []
 
-    // Check Supabase provider (primary)
+    // Check PostgreSQL provider (primary)
     try {
-      providers.push("supabase")
+      providers.push("postgres")
     } catch (error) {
-      console.error("[Provider Factory] Supabase not available:", error)
+      console.error("[Provider Factory] PostgreSQL not available:", error)
     }
 
     // Check Simple provider (fallback/testing)
@@ -53,7 +54,7 @@ export class ProviderFactory {
 // Singleton instance
 let providerInstance: DatabaseProvider | null = null
 
-export async function getDatabaseProvider(provider: DatabaseProviderType = "supabase"): Promise<DatabaseProvider> {
+export async function getDatabaseProvider(provider: DatabaseProviderType = "postgres"): Promise<DatabaseProvider> {
   if (!providerInstance) {
     providerInstance = ProviderFactory.create(provider)
   }

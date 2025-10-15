@@ -400,6 +400,8 @@ export interface TimeEntryFilters {
   status?: TimeEntryStatus
   dateFrom?: string
   dateTo?: string
+  limit?: number
+  offset?: number
 }
 
 // Dashboard metrics
