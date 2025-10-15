@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,10 +79,15 @@ export default function LoginPage() {
       {/* Login card */}
       <Card className="relative z-10 w-full max-w-md shadow-2xl border-slate-200/20 bg-white/95 backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-2">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-credos-primary to-credos-accent flex items-center justify-center text-white font-bold text-xl">
-              C
-            </div>
+          <div className="flex justify-center mb-4">
+            <Image 
+              src="/credos-logo.svg" 
+              alt="Кредо-С" 
+              width={200} 
+              height={60}
+              className="h-16 w-auto"
+              priority
+            />
           </div>
           <CardTitle className="text-2xl font-bold">Добро пожаловать</CardTitle>
           <CardDescription>Credos Project Management System</CardDescription>

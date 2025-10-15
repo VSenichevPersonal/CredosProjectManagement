@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
@@ -108,21 +109,17 @@ export function AppSidebar() {
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-credos-border bg-white">
-      <div className="flex h-24 flex-col items-center justify-center gap-2 border-b border-credos-border px-4">
-        <div className="flex h-16 w-full items-center justify-center">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-credos-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">К</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-semibold text-credos-primary">Credos</span>
-              <span className="text-xs text-muted-foreground">Project Management</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Link href="/" className="flex h-20 items-center justify-center border-b border-credos-border px-4 hover:bg-gray-50 transition-colors">
+        <Image 
+          src="/credos-logo.svg" 
+          alt="Кредо-С" 
+          width={160} 
+          height={48}
+          className="h-12 w-auto"
+        />
+      </Link>
 
-      <nav className="flex flex-col gap-3 overflow-y-auto p-4" style={{ height: "calc(100vh - 6rem)" }}>
+      <nav className="flex flex-col gap-3 overflow-y-auto p-4" style={{ height: "calc(100vh - 5rem)" }}>
         {navigationGroups.map((group) => {
           const isExpanded = expandedGroup === group.id
           const hasActiveItem = group.items.some((item) => pathname === item.href)

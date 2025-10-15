@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { MetricCard } from "@/components/ui/metric-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -12,9 +13,18 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Дашборд</h1>
-          <p className="text-gray-600 mt-1">Обзор проектов и активности команды</p>
+        <div className="flex items-center gap-6">
+          <Image 
+            src="/credos-logo.svg" 
+            alt="Кредо-С" 
+            width={150} 
+            height={45}
+            className="h-12 w-auto"
+          />
+          <div className="border-l border-gray-300 pl-6">
+            <h1 className="text-3xl font-bold text-gray-900">Дашборд</h1>
+            <p className="text-gray-600 mt-1">Обзор проектов и активности команды</p>
+          </div>
         </div>
         <div className="text-sm text-gray-500">
           {new Date().toLocaleDateString('ru-RU', { 
