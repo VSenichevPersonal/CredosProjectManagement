@@ -62,6 +62,14 @@ export async function createExecutionContext(request: NextRequest): Promise<Exec
   // Get permissions for roles
   const permissions = getPermissionsForRoles(roles)
   
+  // DEBUG: Log roles and permissions
+  console.log(`[create-context] User ${employee.email}:`, {
+    roles,
+    permissionsCount: permissions.length,
+    hasTimeEntriesRead: permissions.includes('time_entries:read' as Permission),
+    samplePermissions: permissions.slice(0, 5)
+  })
+  
   // Generate request ID for tracking
   const requestId = generateRequestId()
   
