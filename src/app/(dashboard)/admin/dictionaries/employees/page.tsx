@@ -77,7 +77,7 @@ export default function EmployeesPage() {
   }
 
   const handleDelete = async (employee: Employee) => {
-    if (confirm(\`Вы уверены, что хотите удалить сотрудника "\${employee.fullName}"?\`)) {
+    if (confirm(`Вы уверены, что хотите удалить сотрудника "${employee.fullName}"?`)) {
       deleteEmployee.mutate(employee.id)
     }
   }
