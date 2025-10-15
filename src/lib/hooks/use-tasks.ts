@@ -57,8 +57,18 @@ export function useTasks(filters?: {
       if (filters?.limit) params.append('limit', filters.limit.toString());
 
       const response = await fetch(`/api/tasks?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch tasks');
-      return response.json();
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Unauthorized');
+        }
+        throw new Error('Failed to fetch tasks');
+      }
+      const data = await response.json();
+      // Защита от некорректного формата
+      if (!data || !Array.isArray(data.data)) {
+        return { data: [], total: 0 };
+      }
+      return data;
     },
   });
 }

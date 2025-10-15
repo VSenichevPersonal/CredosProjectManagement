@@ -57,9 +57,17 @@ export function useProjects(filters?: {
 
       const response = await fetch(`/api/projects?${params.toString()}`);
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Unauthorized');
+        }
         throw new Error('Failed to fetch projects');
       }
-      return response.json();
+      const data = await response.json();
+      // Защита от некорректного формата
+      if (!data || !Array.isArray(data.data)) {
+        return { data: [], total: 0, page: 1, totalPages: 0 };
+      }
+      return data;
     },
   });
 }
