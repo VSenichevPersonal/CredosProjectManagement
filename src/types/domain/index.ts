@@ -5,6 +5,10 @@
  * These types represent the business domain and are used across the application.
  */
 
+// Customer & Activity domains
+export * from './customer'
+export * from './activity'
+
 // Employee domain
 export interface Employee {
   id: string
