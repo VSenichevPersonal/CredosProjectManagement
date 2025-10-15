@@ -144,39 +144,71 @@ export async function POST(request: NextRequest) {
       }
       ctx.logger.info(`[Admin] Created ${tasksCreated} tasks`);
 
-      // 5. Создать записи времени (последние 7 дней)
-      ctx.logger.info('[Admin] Creating time entries...');
+      // 5. Создать записи времени (август-октябрь 2025, ~3 месяца)
+      ctx.logger.info('[Admin] Creating time entries for Aug-Oct 2025...');
       let entriesCount = 0;
-      for (let dayOffset = 7; dayOffset >= 0; dayOffset--) {
-        const date = new Date();
-        date.setDate(date.getDate() - dayOffset);
+      
+      // Период: 1 августа - 15 октября 2025 (текущая дата)
+      const startDate = new Date('2025-08-01');
+      const endDate = new Date('2025-10-15');
+      
+      // Проходим по всем дням в периоде
+      for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+        // Пропускаем выходные (0 = воскресенье, 6 = суббота)
+        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) continue;
         
-        // Пропускаем выходные
-        if (date.getDay() === 0 || date.getDay() === 6) continue;
-
-        // 3-5 случайных сотрудников
+        // 7-9 сотрудников работают каждый день (реалистичнее для 3 месяцев)
+        const workingEmployeesCount = Math.floor(Math.random() * 3) + 7; // 7-9
         const workingEmployees = employeeIds
           .sort(() => Math.random() - 0.5)
-          .slice(0, Math.floor(Math.random() * 3) + 3);
+          .slice(0, workingEmployeesCount);
 
         for (const empId of workingEmployees) {
-          const projId = projectIds[Math.floor(Math.random() * projectIds.length)];
-          const hours = Math.floor(Math.random() * 3) + 6; // 6-8 часов
+          // Каждый сотрудник работает в основном над 1-2 проектами
+          const mainProject = projectIds[Math.floor(Math.random() * projectIds.length)];
+          
+          // 80% времени - основной проект, 20% - может быть другой
+          const projId = Math.random() < 0.8 
+            ? mainProject 
+            : projectIds[Math.floor(Math.random() * projectIds.length)];
+          
+          // Реалистичное распределение часов: 6-9 часов в день
+          const hours = Math.floor(Math.random() * 4) + 6; // 6-9 часов
+          
+          // Статус: большинство approved, некоторые submitted
+          const status = Math.random() < 0.85 ? 'approved' : 'submitted';
+          
+          // Описание варьируется
+          const descriptions = [
+            'Разработка функционала',
+            'Анализ требований',
+            'Тестирование',
+            'Документирование',
+            'Code review',
+            'Исправление багов',
+            'Встречи с заказчиком',
+            'Проектирование архитектуры',
+            'Настройка окружения',
+            'Работа по проекту'
+          ];
+          const description = descriptions[Math.floor(Math.random() * descriptions.length)];
           
           try {
             await client.query(
               `INSERT INTO time_entries (employee_id, project_id, date, hours, description, status)
-               VALUES ($1, $2, $3, $4, 'Работа по проекту', 'submitted')
-               ON CONFLICT DO NOTHING`,
-              [empId, projId, date.toISOString().split('T')[0], hours]
+               VALUES ($1, $2, $3, $4, $5, $6)
+               ON CONFLICT (employee_id, project_id, date) DO UPDATE
+               SET hours = EXCLUDED.hours, description = EXCLUDED.description, status = EXCLUDED.status`,
+              [empId, projId, currentDate.toISOString().split('T')[0], hours, description, status]
             );
             entriesCount++;
           } catch (err) {
-            // Skip if entry already exists
+            // Skip if entry fails
+            ctx.logger.debug('[Admin] Time entry skipped', { error: err });
           }
         }
       }
-      ctx.logger.info(`[Admin] Created ${entriesCount} time entries`);
+      ctx.logger.info(`[Admin] Created ${entriesCount} time entries (Aug-Oct 2025)`);
 
       await client.end();
 

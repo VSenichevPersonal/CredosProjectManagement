@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Database, Trash2, Loader2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Database, Trash2, Loader2, AlertTriangle, CheckCircle, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -31,12 +31,33 @@ interface SeedStats {
   timeEntries: number
 }
 
+interface IntegrityReport {
+  status: 'excellent' | 'good' | 'warning' | 'critical'
+  message: string
+  report: {
+    tables: Record<string, { exists: boolean; count: number }>
+    orphans: any[]
+    warnings: string[]
+    errors: string[]
+    summary: {
+      totalRecords: number
+      tablesChecked: number
+      activeEmployees: number
+      activeDirections: number
+      activeProjects: number
+      recentTimeEntries: number
+    }
+  }
+}
+
 export function DatabaseManagementPanel() {
   const { toast } = useToast()
   const [isSeeding, setIsSeeding] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [seedStats, setSeedStats] = useState<SeedStats | null>(null)
+  const [integrityReport, setIntegrityReport] = useState<IntegrityReport | null>(null)
 
   const handleSeedDatabase = async () => {
     setIsSeeding(true)
@@ -73,10 +94,55 @@ export function DatabaseManagementPanel() {
     }
   }
 
+  const handleCheckIntegrity = async () => {
+    setIsChecking(true)
+    setIntegrityReport(null)
+
+    try {
+      const response = await fetch('/api/admin/check-db', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка при проверке БД')
+      }
+
+      setIntegrityReport(data)
+      
+      const statusEmoji = {
+        excellent: '✅',
+        good: '👍',
+        warning: '⚠️',
+        critical: '❌'
+      }[data.status]
+      
+      toast({
+        title: `${statusEmoji} ${data.message}`,
+        description: `Проверено таблиц: ${data.report.summary.tablesChecked}, Всего записей: ${data.report.summary.totalRecords}`,
+        variant: data.status === 'critical' || data.status === 'warning' ? 'destructive' : 'default',
+      })
+    } catch (error: any) {
+      console.error('Check integrity error:', error)
+      toast({
+        title: '❌ Ошибка',
+        description: error.message || 'Не удалось проверить целостность БД',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
   const handleResetDatabase = async () => {
     setShowResetDialog(false)
     setIsResetting(true)
     setSeedStats(null)
+    setIntegrityReport(null)
 
     try {
       const response = await fetch('/api/admin/reset-db', {
@@ -124,12 +190,84 @@ export function DatabaseManagementPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Check Integrity Button */}
+          <div className="flex items-start gap-4 p-4 border border-blue-200 rounded-lg bg-blue-50/50">
+            <div className="flex-1">
+              <h3 className="font-medium mb-1 text-blue-900">Проверить целостность БД</h3>
+              <p className="text-sm text-blue-700">
+                Проверяет таблицы, foreign keys, orphaned records и бизнес-логику.
+                Безопасная операция без изменения данных.
+              </p>
+              {integrityReport && (
+                <div className={`mt-3 p-3 border rounded-md ${
+                  integrityReport.status === 'excellent' ? 'bg-green-50 border-green-200' :
+                  integrityReport.status === 'good' ? 'bg-blue-50 border-blue-200' :
+                  integrityReport.status === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                  'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {integrityReport.status === 'excellent' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                    {integrityReport.status === 'good' && <CheckCircle className="h-4 w-4 text-blue-600" />}
+                    {integrityReport.status === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
+                    {integrityReport.status === 'critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                    <span className={`text-sm font-medium ${
+                      integrityReport.status === 'excellent' ? 'text-green-900' :
+                      integrityReport.status === 'good' ? 'text-blue-900' :
+                      integrityReport.status === 'warning' ? 'text-yellow-900' :
+                      'text-red-900'
+                    }`}>
+                      {integrityReport.message}
+                    </span>
+                  </div>
+                  <ul className={`text-xs space-y-1 ml-6 ${
+                    integrityReport.status === 'excellent' ? 'text-green-800' :
+                    integrityReport.status === 'good' ? 'text-blue-800' :
+                    integrityReport.status === 'warning' ? 'text-yellow-800' :
+                    'text-red-800'
+                  }`}>
+                    <li>• Всего записей: {integrityReport.report.summary.totalRecords}</li>
+                    <li>• Активных сотрудников: {integrityReport.report.summary.activeEmployees}</li>
+                    <li>• Активных направлений: {integrityReport.report.summary.activeDirections}</li>
+                    <li>• Активных проектов: {integrityReport.report.summary.activeProjects}</li>
+                    {integrityReport.report.errors.length > 0 && (
+                      <li className="text-red-700">⚠️ Ошибок: {integrityReport.report.errors.length}</li>
+                    )}
+                    {integrityReport.report.orphans.length > 0 && (
+                      <li className="text-yellow-700">⚠️ Orphaned записей: {integrityReport.report.orphans.length}</li>
+                    )}
+                    {integrityReport.report.warnings.length > 0 && (
+                      <li className="text-yellow-700">⚠️ Предупреждений: {integrityReport.report.warnings.length}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={handleCheckIntegrity}
+              disabled={isChecking}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isChecking ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Проверяем...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Проверить
+                </>
+              )}
+            </Button>
+          </div>
+
           {/* Seed Button */}
           <div className="flex items-start gap-4 p-4 border rounded-lg bg-white">
             <div className="flex-1">
               <h3 className="font-medium mb-1">Заполнить тестовыми данными</h3>
               <p className="text-sm text-muted-foreground">
-                Добавляет в БД тестовые направления, сотрудников, проекты, задачи и записи времени.
+                Добавляет в БД тестовые направления, сотрудников, проекты, задачи и записи времени 
+                <strong> за 3 месяца (август-октябрь 2025)</strong>.
                 Безопасно использовать на заполненной базе (дубликаты не создаются).
               </p>
               {seedStats && (
