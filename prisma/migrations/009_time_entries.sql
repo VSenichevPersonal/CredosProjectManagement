@@ -1,29 +1,22 @@
--- Migration: Time Entries Table
--- Description: Create table for tracking employee time spent on tasks
+-- Migration: Time Entries Table Enhancement
+-- Description: Add task_id to existing time_entries table for task tracking
 -- Author: AI Assistant
 -- Date: 2025-10-15
 
--- Create time_entries table
-CREATE TABLE IF NOT EXISTS time_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  date DATE NOT NULL,
-  hours DECIMAL(5,2) NOT NULL CHECK (hours >= 0 AND hours <= 24),
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- Ensure unique entry per employee/task/date
-  CONSTRAINT unique_employee_task_date UNIQUE (employee_id, task_id, date)
-);
+-- Add task_id column if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'time_entries' AND column_name = 'task_id'
+  ) THEN
+    ALTER TABLE time_entries ADD COLUMN task_id UUID REFERENCES tasks(id) ON DELETE CASCADE;
+    COMMENT ON COLUMN time_entries.task_id IS 'Reference to task';
+  END IF;
+END $$;
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_time_entries_employee_id ON time_entries(employee_id);
-CREATE INDEX IF NOT EXISTS idx_time_entries_project_id ON time_entries(project_id);
+-- Create indexes for better query performance (if not exist)
 CREATE INDEX IF NOT EXISTS idx_time_entries_task_id ON time_entries(task_id);
-CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(date);
 CREATE INDEX IF NOT EXISTS idx_time_entries_employee_date ON time_entries(employee_id, date);
 
 -- Add comments
