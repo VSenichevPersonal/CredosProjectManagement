@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Building2, Briefcase, Tag, DollarSign, Calendar } from "lucide-react"
 
@@ -52,33 +54,44 @@ export default function DictionariesPage() {
           const Icon = dict.icon
           const isActive = dict.status === "active"
           
-          return (
-            <Link
-              key={dict.href}
-              href={isActive ? dict.href : "#"}
-              className={`
-                border rounded-lg p-6 transition-all
-                ${isActive ? "hover:bg-muted hover:shadow-md cursor-pointer" : "opacity-50 cursor-not-allowed"}
-              `}
-              onClick={!isActive ? (e) => e.preventDefault() : undefined}
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Icon className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">{dict.title}</h3>
-                    {!isActive && (
-                      <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
-                        В разработке
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{dict.desc}</p>
-                </div>
+          const content = (
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Icon className="h-6 w-6 text-primary" />
               </div>
-            </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">{dict.title}</h3>
+                  {!isActive && (
+                    <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                      В разработке
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{dict.desc}</p>
+              </div>
+            </div>
+          )
+          
+          if (isActive) {
+            return (
+              <Link
+                key={dict.href}
+                href={dict.href}
+                className="border rounded-lg p-6 transition-all hover:bg-muted hover:shadow-md cursor-pointer"
+              >
+                {content}
+              </Link>
+            )
+          }
+          
+          return (
+            <div
+              key={dict.href}
+              className="border rounded-lg p-6 opacity-50 cursor-not-allowed"
+            >
+              {content}
+            </div>
           )
         })}
       </div>
