@@ -1,78 +1,98 @@
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Users, FolderOpen, Book } from "lucide-react"
+import { Building2, Briefcase, Tag, DollarSign, Calendar } from "lucide-react"
+
+const dictionaries = [
+  {
+    href: "/admin/dictionaries/customers",
+    title: "Клиенты",
+    desc: "Управление клиентами и заказчиками",
+    icon: Building2,
+    status: "active",
+  },
+  {
+    href: "/admin/dictionaries/activities",
+    title: "Виды деятельности",
+    desc: "Типы работ и активностей",
+    icon: Briefcase,
+    status: "active",
+  },
+  {
+    href: "/admin/dictionaries/tags",
+    title: "Теги",
+    desc: "Метки для проектов и задач",
+    icon: Tag,
+    status: "planned",
+  },
+  {
+    href: "/admin/dictionaries/rates",
+    title: "Ставки проектов",
+    desc: "Почасовые ставки по проектам",
+    icon: DollarSign,
+    status: "planned",
+  },
+  {
+    href: "/admin/dictionaries/calendars",
+    title: "Рабочие календари",
+    desc: "Производственные календари и выходные",
+    icon: Calendar,
+    status: "planned",
+  },
+]
 
 export default function DictionariesPage() {
-  const dictionaries = [
-    { 
-      name: "Направления", 
-      href: "/admin/dictionaries/directions",
-      icon: Building2,
-      description: "Управление направлениями компании"
-    },
-    { 
-      name: "Сотрудники", 
-      href: "/admin/dictionaries/employees",
-      icon: Users,
-      description: "Справочник сотрудников"
-    },
-    { 
-      name: "Проекты", 
-      href: "/admin/dictionaries/projects",
-      icon: FolderOpen,
-      description: "Управление проектами"
-    },
-  ]
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Справочники</h1>
-        <p className="text-gray-600 mt-1">Управление справочниками системы</p>
+        <h1 className="text-3xl font-bold font-['PT_Sans']">Справочники</h1>
+        <p className="text-gray-600 mt-1">Управление основными справочниками системы</p>
       </div>
 
-      {/* Dictionaries Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {dictionaries.map((dict) => {
           const Icon = dict.icon
+          const isActive = dict.status === "active"
+          
           return (
-            <Link key={dict.href} href={dict.href}>
-              <Card className="cursor-pointer hover:shadow-lg transition-all hover:border-credos-primary">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-credos-muted flex items-center justify-center">
-                      <Icon className="h-6 w-6 text-credos-primary" />
-                    </div>
-                    <div>
-                      <CardTitle>{dict.name}</CardTitle>
-                    </div>
+            <Link
+              key={dict.href}
+              href={isActive ? dict.href : "#"}
+              className={`
+                border rounded-lg p-6 transition-all
+                ${isActive ? "hover:bg-muted hover:shadow-md cursor-pointer" : "opacity-50 cursor-not-allowed"}
+              `}
+              onClick={!isActive ? (e) => e.preventDefault() : undefined}
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Icon className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{dict.title}</h3>
+                    {!isActive && (
+                      <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                        В разработке
+                      </span>
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>{dict.description}</CardDescription>
-                </CardContent>
-              </Card>
+                  <p className="text-sm text-muted-foreground mt-1">{dict.desc}</p>
+                </div>
+              </div>
             </Link>
           )
         })}
       </div>
 
-      {/* Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Book className="h-5 w-5" />
-            О справочниках
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Справочники содержат основные данные системы. Здесь вы можете управлять направлениями, 
-            сотрудниками, проектами и другими сущностями.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+          📌 О справочниках
+        </h3>
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          Справочники — это настраиваемые списки данных, которые используются во всей системе.
+          Изменения в справочниках влияют на все связанные проекты, задачи и отчёты.
+          Деактивированные элементы остаются в истории, но недоступны для новых записей.
+        </p>
+      </div>
     </div>
   )
 }
