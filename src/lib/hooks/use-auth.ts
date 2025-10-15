@@ -88,11 +88,11 @@ export function withRole<P extends object>(
     const { hasRole, isLoading } = useAuth();
 
     if (isLoading) {
-      return <div>Загрузка...</div>;
+      return <div>Загрузка...</div> as any;
     }
 
     if (!hasRole(requiredRole)) {
-      return fallback || <div>Доступ запрещён</div>;
+      return (fallback || <div>Доступ запрещён</div>) as any;
     }
 
     return <Component {...props} />;

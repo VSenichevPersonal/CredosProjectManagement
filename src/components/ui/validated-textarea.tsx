@@ -8,11 +8,12 @@
  */
 
 import * as React from "react"
-import { Textarea, TextareaProps } from "@/components/ui/textarea"
-import { FormField } from "@/components/ui/form-field"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { AlertCircle } from "lucide-react"
 
-export interface ValidatedTextareaProps extends Omit<TextareaProps, 'onChange'> {
+export interface ValidatedTextareaProps extends Omit<React.ComponentPropsWithoutRef<typeof Textarea>, 'onChange'> {
   label: string
   error?: string
   onValueChange?: (value: string) => void
@@ -20,23 +21,32 @@ export interface ValidatedTextareaProps extends Omit<TextareaProps, 'onChange'> 
 }
 
 export const ValidatedTextarea = React.forwardRef<HTMLTextAreaElement, ValidatedTextareaProps>(
-  ({ label, error, onValueChange, required, className, ...props }, ref) => {
+  ({ label, error, onValueChange, required, className, id, ...props }, ref) => {
+    const textareaId = id || `textarea-${label.toLowerCase().replace(/\s+/g, '-')}`
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onValueChange?.(e.target.value)
     }
 
     return (
-      <FormField 
-        label={required ? `${label} *` : label} 
-        error={error}
-      >
+      <div className="grid gap-2">
+        <Label htmlFor={textareaId} className={cn(error && "text-red-600")}>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
         <Textarea
           ref={ref}
+          id={textareaId}
           onChange={handleChange}
           className={cn(error && 'border-red-500', className)}
           {...props}
         />
-      </FormField>
+        {error && (
+          <div className="flex items-center gap-1 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
     )
   }
 )

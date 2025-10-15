@@ -9,8 +9,9 @@
 
 import * as React from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FormField } from "@/components/ui/form-field"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { AlertCircle } from "lucide-react"
 
 export interface SelectOption {
   value: string
@@ -31,14 +32,18 @@ export interface ValidatedSelectProps {
 
 export const ValidatedSelect = React.forwardRef<HTMLButtonElement, ValidatedSelectProps>(
   ({ label, error, value, onValueChange, options, placeholder, required, disabled, className }, ref) => {
+    const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`
+    
     return (
-      <FormField 
-        label={required ? `${label} *` : label} 
-        error={error}
-      >
+      <div className="grid gap-2">
+        <Label htmlFor={selectId} className={cn(error && "text-red-600")}>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
         <Select value={value} onValueChange={onValueChange} disabled={disabled}>
           <SelectTrigger 
             ref={ref}
+            id={selectId}
             className={cn(error && 'border-red-500', className)}
           >
             <SelectValue placeholder={placeholder} />
@@ -51,7 +56,13 @@ export const ValidatedSelect = React.forwardRef<HTMLButtonElement, ValidatedSele
             ))}
           </SelectContent>
         </Select>
-      </FormField>
+        {error && (
+          <div className="flex items-center gap-1 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
     )
   }
 )
