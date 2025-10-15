@@ -13,8 +13,19 @@ export async function middleware(request: NextRequest) {
   // Check session cookie
   const sessionCookie = request.cookies.get(process.env.AUTH_COOKIE_NAME || "credos_session")
   
-  if (!sessionCookie && !pathname.startsWith("/auth")) {
-    return NextResponse.redirect(new URL("/auth/login", request.url))
+  if (!sessionCookie) {
+    // API routes: return 401 Unauthorized
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized: User not authenticated" },
+        { status: 401 }
+      )
+    }
+    
+    // Page routes: redirect to login
+    if (!pathname.startsWith("/auth")) {
+      return NextResponse.redirect(new URL("/auth/login", request.url))
+    }
   }
 
   return NextResponse.next()
