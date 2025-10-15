@@ -1,11 +1,3 @@
-/**
- * @intent: Logger service for application logging
- * @llm-note: Centralized logging with structured metadata and level support
- * @architecture: Service layer - handles all logging operations
- */
-
-import type { Logger } from '@/lib/context/execution-context'
-
 type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 
 interface LogEntry {
@@ -16,8 +8,7 @@ interface LogEntry {
   error?: Error
 }
 
-export class LoggerServiceImpl implements Logger {
-  private prefix: string
+class Logger {
   private isDevelopment = typeof window === "undefined" ? process.env.NODE_ENV === "development" : false
   private isClient = typeof window !== "undefined"
 
@@ -33,10 +24,6 @@ export class LoggerServiceImpl implements Logger {
     error: 4,
   }
 
-  constructor(prefix = '[CredosPM]') {
-    this.prefix = prefix
-  }
-
   private shouldLog(level: LogLevel): boolean {
     return this.levelPriority[level] >= this.levelPriority[this.minLevel]
   }
@@ -45,17 +32,17 @@ export class LoggerServiceImpl implements Logger {
     const { timestamp, level, message, context, error } = entry
     const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : ""
     const errorStr = error ? ` | Error: ${error.message}\n${error.stack}` : ""
-    return `${this.prefix} [${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}${errorStr}`
+    return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}${errorStr}`
   }
 
-  private log(level: LogLevel, message: string, meta?: any, error?: Error) {
+  private log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error) {
     if (!this.shouldLog(level)) return
 
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
-      context: meta,
+      context,
       error,
     }
 
@@ -77,25 +64,8 @@ export class LoggerServiceImpl implements Logger {
       return
     }
 
-    // Server-side logging
-    const coloredLog = `${colors[level]}${formattedLog}${reset}`
-    
-    switch (level) {
-      case "trace":
-      case "debug":
-        if (this.isDevelopment) {
-          console.log(coloredLog)
-        }
-        break
-      case "info":
-        console.log(coloredLog)
-        break
-      case "warn":
-        console.warn(coloredLog)
-        break
-      case "error":
-        console.error(coloredLog)
-        break
+    if (this.isDevelopment || level === "error" || level === "warn") {
+      console.log(`${colors[level]}${formattedLog}${reset}`)
     }
 
     // In production, you would send to logging service (e.g., Sentry, LogRocket)
@@ -104,39 +74,37 @@ export class LoggerServiceImpl implements Logger {
     }
   }
 
-  trace(message: string, meta?: any): void {
-    this.log("trace", message, meta)
+  trace(message: string, context?: Record<string, unknown>) {
+    this.log("trace", message, context)
   }
 
-  debug(message: string, meta?: any): void {
-    this.log("debug", message, meta)
+  debug(message: string, context?: Record<string, unknown>) {
+    this.log("debug", message, context)
   }
 
-  info(message: string, meta?: any): void {
-    this.log("info", message, meta)
+  info(message: string, context?: Record<string, unknown>) {
+    this.log("info", message, context)
   }
 
-  warn(message: string, meta?: any): void {
-    this.log("warn", message, meta)
+  warn(message: string, context?: Record<string, unknown>) {
+    this.log("warn", message, context)
   }
 
-  error(message: string, meta?: any): void {
-    // Check if meta is an Error object
-    if (meta instanceof Error) {
-      this.log("error", message, undefined, meta)
-    } else {
-      this.log("error", message, meta)
-    }
+  error(message: string, error?: Error, context?: Record<string, unknown>) {
+    this.log("error", message, context, error)
   }
 
-  // Utility methods
+  // Utility method to get current log level
   getLogLevel(): LogLevel {
     return this.minLevel
   }
 
-  setLogLevel(level: LogLevel): void {
+  // Utility method to set log level dynamically
+  setLogLevel(level: LogLevel) {
     this.minLevel = level
   }
 }
 
+export const logger = new Logger()
 export type { LogLevel }
+

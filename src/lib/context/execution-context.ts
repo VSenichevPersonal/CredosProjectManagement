@@ -8,10 +8,11 @@ import type { Employee } from '@/types/domain'
 import type { DatabaseProvider } from '@/providers/database-provider.interface'
 
 export interface Logger {
+  trace(message: string, meta?: any): void
+  debug(message: string, meta?: any): void
   info(message: string, meta?: any): void
   warn(message: string, meta?: any): void
   error(message: string, meta?: any): void
-  debug(message: string, meta?: any): void
 }
 
 export interface AccessControlService {
