@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createExecutionContext } from '@/lib/context/create-context';
 import { ReportService } from '@/services/report-service';
 
+// Отключаем статическую генерацию - эндпоинт требует runtime данные
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/reports/projects
  * Отчёт по бюджетам проектов

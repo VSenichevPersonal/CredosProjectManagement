@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createExecutionContext } from '@/lib/context/create-context';
 
+// Отключаем статическую генерацию - эндпоинт требует runtime данные
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/auth/me
  * Получить информацию о текущем пользователе
