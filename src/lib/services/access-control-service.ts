@@ -4,7 +4,8 @@
  * @architecture: Service layer - handles all access control logic
  */
 
-import type { AccessControlService, Permission, UserRole } from '@/lib/context/execution-context'
+import type { AccessControlService } from '@/lib/context/execution-context'
+import type { Permission, UserRole } from '@/lib/access-control/permissions'
 
 export class AccessControlServiceImpl implements AccessControlService {
   constructor(
@@ -24,5 +25,13 @@ export class AccessControlServiceImpl implements AccessControlService {
 
   hasRole(role: UserRole): boolean {
     return this.roles.includes(role)
+  }
+
+  getRoles(): UserRole[] {
+    return [...this.roles]
+  }
+
+  getPermissions(): Permission[] {
+    return [...this.permissions]
   }
 }

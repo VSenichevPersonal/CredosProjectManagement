@@ -16,9 +16,11 @@ export interface Logger {
 }
 
 export interface AccessControlService {
-  require(permission: Permission): Promise<void>
-  check(permission: Permission): boolean
-  hasRole(role: UserRole): boolean
+  require(permission: any): Promise<void>
+  check(permission: any): boolean
+  hasRole(role: any): boolean
+  getRoles(): any[]
+  getPermissions(): any[]
 }
 
 export interface ExecutionContext {

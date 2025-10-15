@@ -13,11 +13,12 @@
 
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
-import type { ExecutionContext, UserRole, Permission } from './execution-context'
+import type { ExecutionContext } from './execution-context'
 import type { Employee } from '@/types/domain'
 import { AccessControlServiceImpl } from '@/lib/services/access-control-service'
 import { LoggerServiceImpl } from '@/lib/services/logger-service'
 import { getDatabaseProvider } from '@/providers/provider-factory'
+import { type UserRole, type Permission, getPermissionsForRoles } from '@/lib/access-control/permissions'
 
 export async function createExecutionContext(request: NextRequest): Promise<ExecutionContext> {
   const supabase = createServerClient()
@@ -48,8 +49,8 @@ export async function createExecutionContext(request: NextRequest): Promise<Exec
     throw new Error('Employee account is inactive')
   }
   
-  // Determine user roles based on position and permissions
-  const roles = determineUserRoles(employee)
+  // Get user roles from database
+  const roles = await getUserRolesFromDb(supabase, employee.id)
   
   // Get permissions for roles
   const permissions = getPermissionsForRoles(roles)
@@ -75,41 +76,41 @@ export async function createExecutionContext(request: NextRequest): Promise<Exec
   }
 }
 
-function determineUserRoles(employee: any): UserRole[] {
-  const roles: UserRole[] = ['employee'] // Everyone has base employee role
-  
-  // Role determination based on position and other factors
-  const position = employee.position?.toLowerCase() || ''
-  
-  if (position.includes('директор') || position.includes('руководитель')) {
-    roles.push('admin')
-  } else if (position.includes('менеджер проектов')) {
-    roles.push('project_manager')
-  } else if (position.includes('тимлид') || position.includes('лидер команды')) {
-    roles.push('team_lead')
-  } else if (position.includes('hr') || position.includes('кадры')) {
-    roles.push('hr')
-  } else if (position.includes('финанс') || position.includes('бухгалтер')) {
-    roles.push('finance')
-  }
-  
-  // If has subordinates, add manager role
-  if (employee.manager_id === null && roles.length === 1) {
-    roles.push('manager')
-  }
-  
-  return roles
-}
+/**
+ * Получить роли пользователя из БД (user_roles table)
+ */
+async function getUserRolesFromDb(supabase: any, employeeId: string): Promise<UserRole[]> {
+  const { data: userRoles, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('employee_id', employeeId)
+    .eq('is_active', true);
 
-function getPermissionsForRoles(roles: UserRole[]): Permission[] {
-  const permissions = new Set<Permission>()
-  
-  for (const role of roles) {
-    const rolePermissions = ROLE_PERMISSIONS[role] || []
-    rolePermissions.forEach(permission => permissions.add(permission))
+  if (error) {
+    console.error('Error fetching user roles:', error);
+    // Если ошибка - возвращаем базовую роль
+    return ['employee'];
   }
-  
-  return Array.from(permissions)
+
+  if (!userRoles || userRoles.length === 0) {
+    // Если ролей нет в БД - базовая роль
+    return ['employee'];
+  }
+
+  // Собираем уникальные роли
+  const roles = new Set<UserRole>();
+  userRoles.forEach((ur: any) => {
+    if (ur.role === 'admin' || ur.role === 'manager' || ur.role === 'employee' || ur.role === 'viewer') {
+      roles.add(ur.role as UserRole);
+    }
+  });
+
+  // Если нет ни одной валидной роли - даём базовую
+  if (roles.size === 0) {
+    return ['employee'];
+  }
+
+  return Array.from(roles);
 }
 
 function mapEmployeeFromDb(dbEmployee: any): Employee {
@@ -140,6 +141,3 @@ function mapEmployeeFromDb(dbEmployee: any): Employee {
 function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
-
-// Import ROLE_PERMISSIONS from execution-context
-import { ROLE_PERMISSIONS } from './execution-context'
