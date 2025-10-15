@@ -40,9 +40,17 @@ export default function MyTasksPage() {
     dueDate: ""
   })
 
-  // React Query hooks
-  const { data: tasks = [], isLoading: loadingTasks } = useTasks()
-  const { data: projects = [], isLoading: loadingProjects } = useProjects()
+  // TODO: Get actual employee ID from auth session
+  const MOCK_EMPLOYEE_ID = "00000000-0000-0000-0000-000000000001"
+
+  // React Query hooks with filter for "my tasks"
+  const { data: tasksResult, isLoading: loadingTasks } = useTasks({
+    assigneeId: MOCK_EMPLOYEE_ID, // Filter: только мои задачи
+  })
+  const { data: projectsResult, isLoading: loadingProjects } = useProjects()
+  
+  const tasks = tasksResult?.data || []
+  const projects = projectsResult?.data || []
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()

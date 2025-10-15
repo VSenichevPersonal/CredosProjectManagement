@@ -35,11 +35,28 @@ export const taskKeys = {
   detail: (id: string) => [...taskKeys.details(), id] as const,
 };
 
-export function useTasks() {
+export function useTasks(filters?: {
+  search?: string;
+  projectId?: string;
+  assigneeId?: string;
+  status?: string;
+  priority?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
-    queryKey: taskKeys.lists(),
-    queryFn: async (): Promise<Task[]> => {
-      const response = await fetch('/api/tasks');
+    queryKey: taskKeys.list(filters || {}),
+    queryFn: async (): Promise<{ data: Task[]; total: number; page?: number; totalPages?: number }> => {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.projectId) params.append('projectId', filters.projectId);
+      if (filters?.assigneeId) params.append('assigneeId', filters.assigneeId);
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.priority) params.append('priority', filters.priority);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await fetch(`/api/tasks?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
       return response.json();
     },
