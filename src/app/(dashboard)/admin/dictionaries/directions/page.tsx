@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { FormField } from "@/components/ui/form-field"
+import { TableSkeleton } from "@/components/ui/skeleton"
 import type { ColumnDefinition } from "@/types/table"
 import { Building2 } from "lucide-react"
 import { useDirections, useCreateDirection, useUpdateDirection, useDeleteDirection } from "@/lib/hooks/use-directions"
@@ -130,6 +131,21 @@ export default function DirectionsPage() {
     if (confirm(`Вы уверены, что хотите удалить направление "${direction.name}"?`)) {
       deleteDirection.mutate(direction.id)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-credos-primary" />
+            <h1 className="text-2xl font-bold">Направления</h1>
+          </div>
+          <p className="text-gray-600">Управление направлениями деятельности компании</p>
+        </div>
+        <TableSkeleton rows={5} columns={4} />
+      </div>
+    )
   }
 
   return (
