@@ -37,12 +37,25 @@ export const projectKeys = {
   detail: (id: string) => [...projectKeys.details(), id] as const,
 };
 
-// Fetch all projects
-export function useProjects() {
+// Fetch all projects with optional search and filters
+export function useProjects(filters?: {
+  search?: string;
+  directionId?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
-    queryKey: projectKeys.lists(),
-    queryFn: async (): Promise<Project[]> => {
-      const response = await fetch('/api/projects');
+    queryKey: projectKeys.list(filters || {}),
+    queryFn: async (): Promise<{ data: Project[]; total: number; page: number; totalPages: number }> => {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.directionId) params.append('directionId', filters.directionId);
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await fetch(`/api/projects?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch projects');
       }

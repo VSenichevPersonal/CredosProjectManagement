@@ -1,5 +1,5 @@
 /**
- * @intent: Handle project CRUD operations
+ * @intent: Handle project CRUD operations with server-side search & pagination
  * @architecture: API Layer - validation → context → service → response
  */
 
@@ -7,6 +7,7 @@ import type { NextRequest } from "next/server"
 import { createExecutionContext } from "@/lib/context/create-context"
 import { handleApiError } from "@/lib/utils/errors"
 import { z } from "zod"
+import { ProjectService } from "@/services/project-service"
 
 const createProjectSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -21,27 +22,50 @@ const createProjectSchema = z.object({
   totalBudget: z.number().optional(),
 })
 
-// GET /api/projects - List all projects
+// GET /api/projects - List projects with server-side search & pagination
 export async function GET(request: NextRequest) {
   try {
     const ctx = await createExecutionContext(request)
-    ctx.logger.info("GET /api/projects - Fetching projects")
+    ctx.logger.info("GET /api/projects - Fetching projects with filters")
 
     await ctx.access.require("projects:read")
 
     const searchParams = request.nextUrl.searchParams
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "50")
+    const offset = (page - 1) * limit
+
+    // Filter parameters
     const filters = {
+      search: searchParams.get("search") || undefined,
       directionId: searchParams.get("directionId") || undefined,
       managerId: searchParams.get("managerId") || undefined,
       status: searchParams.get("status") || undefined,
+      priority: searchParams.get("priority") || undefined,
     }
 
-    const projects = await ctx.db.projects.getAll(ctx, filters)
-    ctx.logger.info("Projects fetched", { count: projects.length })
+    // Get projects with server-side filtering
+    const result = await ProjectService.getAllProjects(ctx, {
+      ...filters,
+      limit,
+      offset,
+    })
+
+    ctx.logger.info("Projects fetched", { 
+      count: result.data.length, 
+      total: result.total,
+      page,
+      limit 
+    })
 
     return Response.json({
-      data: projects,
-      total: projects.length,
+      data: result.data,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
     })
   } catch (error) {
     return handleApiError(error)
@@ -59,7 +83,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createProjectSchema.parse(body)
 
-    const project = await ctx.db.projects.create(ctx, {
+    const project = await ProjectService.createProject(ctx, {
       name: validatedData.name,
       code: validatedData.code,
       description: validatedData.description,
@@ -70,7 +94,6 @@ export async function POST(request: NextRequest) {
       startDate: validatedData.startDate,
       endDate: validatedData.endDate,
       totalBudget: validatedData.totalBudget,
-      currentSpent: 0,
     })
 
     ctx.logger.info("Project created", { id: project.id })
@@ -80,4 +103,3 @@ export async function POST(request: NextRequest) {
     return handleApiError(error)
   }
 }
-

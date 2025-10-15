@@ -1,11 +1,7 @@
-/**
- * @intent: Handle single project operations (GET, PUT, DELETE)
- */
-
-import type { NextRequest } from "next/server"
-import { createExecutionContext } from "@/lib/context/create-context"
-import { handleApiError } from "@/lib/utils/errors"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server';
+import { createExecutionContext } from '@/lib/context/create-context';
+import { ProjectService } from '@/services/project-service';
+import { z } from 'zod';
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
@@ -13,75 +9,87 @@ const updateProjectSchema = z.object({
   description: z.string().optional(),
   directionId: z.string().uuid().optional(),
   managerId: z.string().uuid().optional(),
-  status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]).optional(),
-  priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+  status: z.enum(['planning', 'active', 'on_hold', 'completed', 'cancelled']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   totalBudget: z.number().optional(),
-})
+});
 
-// GET /api/projects/[id] - Get single project
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("projects:read")
+    context.logger.info('Fetching project', { id: params.id });
 
-    const project = await ctx.db.projects.getById(ctx, params.id)
+    const project = await ProjectService.getProjectById(context, params.id);
 
     if (!project) {
-      return Response.json(
-        { error: "Проект не найден" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    return Response.json(project)
+    return NextResponse.json(project);
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to fetch project', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch project' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT /api/projects/[id] - Update project
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("projects:update")
+    const body = await request.json();
+    context.logger.info('Updating project', { id: params.id, ...body });
 
-    const body = await request.json()
-    const validatedData = updateProjectSchema.parse(body)
+    const validatedData = updateProjectSchema.parse(body);
 
-    const project = await ctx.db.projects.update(ctx, params.id, validatedData)
+    const project = await ProjectService.updateProject(context, params.id, validatedData);
 
-    ctx.logger.info("Project updated", { id: params.id })
-
-    return Response.json(project)
+    return NextResponse.json(project);
   } catch (error) {
-    return handleApiError(error)
+    if (error instanceof z.ZodError) {
+      context.logger.warn('Validation error', error.errors);
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    context.logger.error('Failed to update project', error);
+    return NextResponse.json(
+      { error: 'Failed to update project' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE /api/projects/[id] - Delete project
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("projects:delete")
+    context.logger.info('Deleting project', { id: params.id });
 
-    await ctx.db.projects.delete(ctx, params.id)
+    await ProjectService.deleteProject(context, params.id);
 
-    ctx.logger.info("Project deleted", { id: params.id })
-
-    return Response.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to delete project', error);
+    return NextResponse.json(
+      { error: 'Failed to delete project' },
+      { status: 500 }
+    );
   }
 }
-
