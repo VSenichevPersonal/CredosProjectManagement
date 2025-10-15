@@ -243,33 +243,37 @@ export interface UpdateDirectionDTO {
 
 export interface CreateProjectDTO {
   name: string
+  code?: string
   description?: string
   directionId: string
-  managerId: string
-  priority: Priority
+  managerId?: string
+  status?: string
+  priority?: string
   startDate?: string
   endDate?: string
-  budget?: number
+  totalBudget?: number
 }
 
 export interface UpdateProjectDTO {
   name?: string
+  code?: string
   description?: string
   directionId?: string
   managerId?: string
-  status?: ProjectStatus
-  priority?: Priority
+  status?: string
+  priority?: string
   startDate?: string
   endDate?: string
-  budget?: number
+  totalBudget?: number
 }
 
 export interface CreateTaskDTO {
   projectId: string
   name: string
   description?: string
-  assigneeId: string
-  priority: Priority
+  assigneeId?: string
+  status?: string
+  priority?: string
   estimatedHours?: number
   dueDate?: string
 }
@@ -277,9 +281,10 @@ export interface CreateTaskDTO {
 export interface UpdateTaskDTO {
   name?: string
   description?: string
+  projectId?: string
   assigneeId?: string
-  status?: TaskStatus
-  priority?: Priority
+  status?: string
+  priority?: string
   estimatedHours?: number
   actualHours?: number
   dueDate?: string
@@ -365,21 +370,27 @@ export interface CreateSalaryRegisterDTO {
 
 // Filters for queries
 export interface ProjectFilters {
+  search?: string
   directionId?: string
   managerId?: string
-  status?: ProjectStatus
-  priority?: Priority
+  status?: ProjectStatus | string  // Allow string from query params
+  priority?: Priority | string      // Allow string from query params
   dateFrom?: string
   dateTo?: string
+  limit?: number
+  offset?: number
 }
 
 export interface TaskFilters {
+  search?: string
   projectId?: string
   assigneeId?: string
-  status?: TaskStatus
-  priority?: Priority
+  status?: TaskStatus | string      // Allow string from query params
+  priority?: Priority | string      // Allow string from query params
   dueDateFrom?: string
   dueDateTo?: string
+  limit?: number
+  offset?: number
 }
 
 export interface TimeEntryFilters {

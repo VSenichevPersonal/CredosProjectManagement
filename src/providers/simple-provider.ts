@@ -9,8 +9,13 @@ import type { ExecutionContext } from '@/lib/context/execution-context'
 import type { Employee, Direction, RevenueManual, CreateRevenueManualDTO, SalaryRegister, CreateSalaryRegisterDTO } from '@/types/domain'
 
 export class SimpleDatabaseProvider {
+  async _rawQuery<T = any>(_ctx: any, _sql: string, _params: any[] = []): Promise<{ rows: T[]; rowCount: number }> {
+    return { rows: [], rowCount: 0 }
+  }
+
   employees = {
-    async getAll(_ctx: ExecutionContext): Promise<Employee[]> { return [] },
+    async getAll(_ctx: ExecutionContext, _filters?: any): Promise<Employee[]> { return [] },
+    async getCount(_ctx: ExecutionContext, _filters?: any): Promise<number> { return 0 },
     async getById(_ctx: ExecutionContext, _id: string): Promise<Employee | null> { return null },
     async getByDirection(_ctx: ExecutionContext, _directionId: string): Promise<Employee[]> { return [] },
     async getSubordinates(_ctx: ExecutionContext, _managerId: string): Promise<Employee[]> { return [] },
@@ -20,7 +25,8 @@ export class SimpleDatabaseProvider {
   }
 
   directions = {
-    async getAll(_ctx: ExecutionContext): Promise<Direction[]> { return [] },
+    async getAll(_ctx: ExecutionContext, _filters?: any): Promise<Direction[]> { return [] },
+    async getCount(_ctx: ExecutionContext, _filters?: any): Promise<number> { return 0 },
     async getById(_ctx: ExecutionContext, _id: string): Promise<Direction | null> { return null },
     async create(_ctx: ExecutionContext, _data: Omit<Direction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Direction> { throw new Error('Not implemented') },
     async update(_ctx: ExecutionContext, _id: string, _data: Partial<Direction>): Promise<Direction> { throw new Error('Not implemented') },
@@ -28,7 +34,8 @@ export class SimpleDatabaseProvider {
   }
 
   projects = {
-    async getAll(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getAll(_ctx: ExecutionContext, _filters?: any): Promise<any[]> { return [] },
+    async getCount(_ctx: ExecutionContext, _filters?: any): Promise<number> { return 0 },
     async getById(_ctx: ExecutionContext, _id: string): Promise<any | null> { return null },
     async getByManager(_ctx: ExecutionContext, _managerId: string): Promise<any[]> { return [] },
     async getByDirection(_ctx: ExecutionContext, _directionId: string): Promise<any[]> { return [] },
@@ -38,7 +45,8 @@ export class SimpleDatabaseProvider {
   }
 
   tasks = {
-    async getAll(_ctx: ExecutionContext): Promise<any[]> { return [] },
+    async getAll(_ctx: ExecutionContext, _filters?: any): Promise<any[]> { return [] },
+    async getCount(_ctx: ExecutionContext, _filters?: any): Promise<number> { return 0 },
     async getById(_ctx: ExecutionContext, _id: string): Promise<any | null> { return null },
     async getByProject(_ctx: ExecutionContext, _projectId: string): Promise<any[]> { return [] },
     async getByAssignee(_ctx: ExecutionContext, _assigneeId: string): Promise<any[]> { return [] },

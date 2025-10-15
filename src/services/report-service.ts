@@ -37,12 +37,13 @@ export interface ProjectBudgetReport {
 }
 
 // ============================================================================
-// Report Service
+// Report Service - Refactored with fallback to _rawQuery
 // ============================================================================
 
 export class ReportService {
   /**
    * Отчёт по загрузке сотрудников
+   * Использует _rawQuery для сложных аналитических запросов
    */
   static async getEmployeeUtilization(
     ctx: ExecutionContext,
@@ -50,68 +51,76 @@ export class ReportService {
     endDate: string
   ): Promise<EmployeeUtilization[]> {
     ctx.logger.info('[ReportService] getEmployeeUtilization', { startDate, endDate });
-    await ctx.access.require('reports:view' as any);
+    await ctx.access.require('reports:read' as any);
 
-    // SQL запрос для загрузки сотрудников
-    const query = `
-      SELECT 
-        e.id as employee_id,
-        e.full_name as employee_name,
-        e.position,
-        COALESCE(SUM(te.hours), 0) as total_hours
-      FROM employees e
-      LEFT JOIN time_entries te ON te.employee_id = e.id 
-        AND te.date >= $1 
-        AND te.date <= $2
-      WHERE e.is_active = true
-      GROUP BY e.id, e.full_name, e.position
-      ORDER BY total_hours DESC
-    `;
+    // Попробуем использовать репозитории для простых запросов
+    const employees = await ctx.db.employees.getAll(ctx, { isActive: true });
 
-    const result = await ctx.db.query(query, [startDate, endDate]);
-
-    // Для каждого сотрудника получаем разбивку по проектам
     const utilizationData: EmployeeUtilization[] = [];
 
-    for (const row of result.rows) {
-      // Получить часы по проектам для этого сотрудника
-      const projectQuery = `
-        SELECT 
-          p.id as project_id,
-          p.name as project_name,
-          SUM(te.hours) as hours
-        FROM time_entries te
-        JOIN projects p ON p.id = te.project_id
-        WHERE te.employee_id = $1
-          AND te.date >= $2
-          AND te.date <= $3
-        GROUP BY p.id, p.name
-        ORDER BY hours DESC
-      `;
+    for (const employee of employees) {
+      // Для каждого сотрудника получаем разбивку по проектам
+      // Используем _rawQuery для сложного агрегирующего запроса
+      try {
+        const projectQuery = `
+          SELECT 
+            p.id as project_id,
+            p.name as project_name,
+            SUM(te.hours) as hours
+          FROM time_entries te
+          JOIN projects p ON p.id = te.project_id
+          WHERE te.employee_id = $1
+            AND te.date >= $2
+            AND te.date <= $3
+          GROUP BY p.id, p.name
+          ORDER BY hours DESC
+        `;
 
-      const projectResult = await ctx.db.query(projectQuery, [
-        row.employee_id,
-        startDate,
-        endDate,
-      ]);
+        const projectResult = await ctx.db._rawQuery(ctx, projectQuery, [
+          employee.id,
+          startDate,
+          endDate
+        ]);
 
-      const capacity = 40; // Стандартная рабочая неделя
-      const totalHours = parseFloat(row.total_hours);
-      const utilization = capacity > 0 ? (totalHours / capacity) * 100 : 0;
+        // Получаем общие часы
+        const totalQuery = `
+          SELECT COALESCE(SUM(te.hours), 0) as total_hours
+          FROM time_entries te
+          WHERE te.employee_id = $1
+            AND te.date >= $2
+            AND te.date <= $3
+        `;
 
-      utilizationData.push({
-        employeeId: row.employee_id,
-        employeeName: row.employee_name,
-        position: row.position,
-        totalHours,
-        capacity,
-        utilization: Math.round(utilization * 10) / 10, // Округлить до 1 знака
-        projects: projectResult.rows.map((p: any) => ({
-          projectId: p.project_id,
-          projectName: p.project_name,
-          hours: parseFloat(p.hours),
-        })),
-      });
+        const totalResult = await ctx.db._rawQuery<{ total_hours: string }>(ctx, totalQuery, [
+          employee.id,
+          startDate,
+          endDate
+        ]);
+
+        const capacity = 40; // Стандартная рабочая неделя
+        const totalHours = parseFloat(totalResult.rows[0]?.total_hours || '0');
+        const utilization = capacity > 0 ? (totalHours / capacity) * 100 : 0;
+
+        utilizationData.push({
+          employeeId: employee.id,
+          employeeName: employee.fullName,
+          position: employee.position,
+          totalHours,
+          capacity,
+          utilization: Math.round(utilization * 10) / 10,
+          projects: projectResult.rows.map((p: any) => ({
+            projectId: p.project_id,
+            projectName: p.project_name,
+            hours: parseFloat(p.hours)
+          }))
+        });
+      } catch (error: any) {
+        ctx.logger.error('[ReportService] Failed to get utilization for employee', { 
+          employeeId: employee.id, 
+          error: error.message 
+        });
+        // Продолжаем для остальных сотрудников
+      }
     }
 
     return utilizationData;
@@ -124,77 +133,75 @@ export class ReportService {
     ctx: ExecutionContext
   ): Promise<ProjectBudgetReport[]> {
     ctx.logger.info('[ReportService] getProjectBudgetReport');
-    await ctx.access.require('reports:view' as any);
+    await ctx.access.require('reports:read' as any);
 
-    // SQL запрос для бюджетов проектов
-    const query = `
-      SELECT 
-        p.id as project_id,
-        p.name as project_name,
-        p.code as project_code,
-        p.status,
-        COALESCE(p.total_budget, 0) as budget,
-        COALESCE(p.current_spent, 0) as spent
-      FROM projects p
-      WHERE p.status != 'cancelled'
-      ORDER BY p.name
-    `;
-
-    const result = await ctx.db.query(query, []);
+    // Получаем все проекты через репозиторий
+    const projects = await ctx.db.projects.getAll(ctx, { 
+      status: 'active',
+      limit: 1000 
+    });
 
     const budgetReports: ProjectBudgetReport[] = [];
 
-    for (const row of result.rows) {
-      // Получить затраты по сотрудникам для этого проекта
-      const employeeQuery = `
-        SELECT 
-          e.id as employee_id,
-          e.full_name as employee_name,
-          SUM(te.hours) as hours,
-          e.default_hourly_rate as hourly_rate
-        FROM time_entries te
-        JOIN employees e ON e.id = te.employee_id
-        WHERE te.project_id = $1
-        GROUP BY e.id, e.full_name, e.default_hourly_rate
-        ORDER BY hours DESC
-      `;
+    for (const project of projects) {
+      try {
+        // Используем _rawQuery для сложного агрегирующего запроса
+        const employeeQuery = `
+          SELECT 
+            e.id as employee_id,
+            e.full_name as employee_name,
+            SUM(te.hours) as hours,
+            e.default_hourly_rate as hourly_rate
+          FROM time_entries te
+          JOIN employees e ON e.id = te.employee_id
+          WHERE te.project_id = $1
+          GROUP BY e.id, e.full_name, e.default_hourly_rate
+          ORDER BY hours DESC
+        `;
 
-      const employeeResult = await ctx.db.query(employeeQuery, [row.project_id]);
+        const employeeResult = await ctx.db._rawQuery(ctx, employeeQuery, [project.id]);
 
-      const employees = employeeResult.rows.map((emp: any) => {
-        const hours = parseFloat(emp.hours);
-        const rate = parseFloat(emp.hourly_rate || 0);
-        const cost = hours * rate;
+        const employees = employeeResult.rows.map((emp: any) => {
+          const hours = parseFloat(emp.hours);
+          const rate = parseFloat(emp.hourly_rate || 0);
+          const cost = hours * rate;
 
-        return {
-          employeeId: emp.employee_id,
-          employeeName: emp.employee_name,
-          hours,
-          cost,
-        };
-      });
+          return {
+            employeeId: emp.employee_id,
+            employeeName: emp.employee_name,
+            hours,
+            cost
+          };
+        });
 
-      // Посчитать общие затраты
-      const totalCost = employees.reduce((sum, emp) => sum + emp.cost, 0);
+        // Посчитать общие затраты
+        const totalCost = employees.reduce((sum, emp) => sum + emp.cost, 0);
 
-      const budget = parseFloat(row.budget);
-      const spent = totalCost; // Используем посчитанные затраты
-      const remaining = budget - spent;
-      const utilizationPercent = budget > 0 ? (spent / budget) * 100 : 0;
-      const isOverBudget = spent > budget;
+        const budget = project.totalBudget || 0;
+        const spent = totalCost;
+        const remaining = budget - spent;
+        const utilizationPercent = budget > 0 ? (spent / budget) * 100 : 0;
+        const isOverBudget = spent > budget;
 
-      budgetReports.push({
-        projectId: row.project_id,
-        projectName: row.project_name,
-        projectCode: row.project_code,
-        status: row.status,
-        budget,
-        spent,
-        remaining,
-        utilizationPercent: Math.round(utilizationPercent * 10) / 10,
-        isOverBudget,
-        employees,
-      });
+        budgetReports.push({
+          projectId: project.id,
+          projectName: project.name,
+          projectCode: project.description || undefined,
+          status: project.status,
+          budget,
+          spent,
+          remaining,
+          utilizationPercent: Math.round(utilizationPercent * 10) / 10,
+          isOverBudget,
+          employees
+        });
+      } catch (error: any) {
+        ctx.logger.error('[ReportService] Failed to get budget for project', { 
+          projectId: project.id, 
+          error: error.message 
+        });
+        // Продолжаем для остальных проектов
+      }
     }
 
     return budgetReports;
@@ -237,7 +244,11 @@ export class ReportService {
         AND te.date <= $3
     `;
 
-    const result = await ctx.db.query(query, [employeeId, startDate, endDate]);
+    const result = await ctx.db._rawQuery<{ total_hours: string; days_worked: string }>(
+      ctx,
+      query, 
+      [employeeId, startDate, endDate]
+    );
     const row = result.rows[0];
 
     const totalHours = parseFloat(row.total_hours);
@@ -259,7 +270,7 @@ export class ReportService {
       ORDER BY hours DESC
     `;
 
-    const projectResult = await ctx.db.query(projectQuery, [employeeId, startDate, endDate]);
+    const projectResult = await ctx.db._rawQuery(ctx, projectQuery, [employeeId, startDate, endDate]);
 
     const projects = projectResult.rows.map((p: any) => {
       const hours = parseFloat(p.hours);
@@ -269,7 +280,7 @@ export class ReportService {
         projectId: p.project_id,
         projectName: p.project_name,
         hours,
-        percent: Math.round(percent * 10) / 10,
+        percent: Math.round(percent * 10) / 10
       };
     });
 
@@ -277,8 +288,7 @@ export class ReportService {
       totalHours,
       daysWorked,
       avgHoursPerDay: Math.round(avgHoursPerDay * 10) / 10,
-      projects,
+      projects
     };
   }
 }
-

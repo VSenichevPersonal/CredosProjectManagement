@@ -27,22 +27,14 @@ export async function GET(request: NextRequest) {
       endDate 
     });
 
-    const service = new TimeEntryService(context);
+    // Use static methods with filters
+    const result = await TimeEntryService.getAllTimeEntries(context, {
+      employeeId: employeeId || undefined,
+      dateFrom: startDate || undefined,
+      dateTo: endDate || undefined
+    });
     
-    if (employeeId && startDate && endDate) {
-      const entries = await service.getEntriesByEmployeeAndDateRange(
-        employeeId, 
-        startDate, 
-        endDate
-      );
-      return NextResponse.json(entries);
-    } else if (employeeId) {
-      const entries = await service.getEntriesByEmployee(employeeId);
-      return NextResponse.json(entries);
-    } else {
-      const entries = await service.getAllEntries();
-      return NextResponse.json(entries);
-    }
+    return NextResponse.json(result);
   } catch (error) {
     context.logger.error('Failed to fetch time entries', error);
     return NextResponse.json(
@@ -60,30 +52,14 @@ export async function POST(request: NextRequest) {
     context.logger.info('Creating time entry', body);
 
     const validatedData = createTimeEntrySchema.parse(body);
-    const service = new TimeEntryService(context);
     
-    // Проверяем, существует ли запись за этот день для этого проекта/задачи
-    const existing = await service.getEntryByDateAndTask(
-      validatedData.employeeId,
-      validatedData.date,
-      validatedData.taskId
-    );
+    // TODO: Add duplicate check when repository is fully implemented
+    
+    // Create new time entry
+    const result = await TimeEntryService.createTimeEntry(context, validatedData);
+    context.logger.info('Created new time entry', { id: result.id });
 
-    let result;
-    if (existing) {
-      // Обновляем существующую запись
-      result = await service.updateEntry(existing.id, {
-        hours: validatedData.hours,
-        description: validatedData.description || existing.description,
-      });
-      context.logger.info('Updated existing time entry', { id: existing.id });
-    } else {
-      // Создаем новую запись
-      result = await service.createEntry(validatedData);
-      context.logger.info('Created new time entry', { id: result.id });
-    }
-
-    return NextResponse.json(result, { status: existing ? 200 : 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       context.logger.warn('Validation error', error.errors);

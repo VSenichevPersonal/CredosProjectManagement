@@ -6,18 +6,19 @@
 
 import type { DatabaseProvider } from './database-provider.interface'
 import { SimpleDatabaseProvider } from './simple-provider'
+import { SupabaseDatabaseProvider } from './supabase-database-provider'
 
 export type DatabaseProviderType = "simple" | "supabase" | "mock"
 
 export class ProviderFactory {
-  static create(provider: DatabaseProviderType = "simple"): DatabaseProvider {
+  static create(provider: DatabaseProviderType = "supabase"): DatabaseProvider {
     switch (provider) {
       case "simple":
+        // Deprecated: Use for testing only
         return new SimpleDatabaseProvider()
 
       case "supabase":
-        // TODO: Implement Supabase provider
-        throw new Error("Supabase provider not yet implemented")
+        return new SupabaseDatabaseProvider()
 
       case "mock":
         // TODO: Implement Mock provider for testing
@@ -31,29 +32,18 @@ export class ProviderFactory {
   static async getAvailableProviders(): Promise<DatabaseProviderType[]> {
     const providers: DatabaseProviderType[] = []
 
-    // Check Simple provider
+    // Check Supabase provider (primary)
     try {
-      const simple = new SimpleDatabaseProvider()
-      // Simple provider is always available
-      providers.push("simple")
-    } catch (error) {
-      console.error("[Provider Factory] Simple provider not available:", error)
-    }
-
-    // Check Supabase provider
-    try {
-      // TODO: Check if Supabase is configured
-      // providers.push("supabase")
+      providers.push("supabase")
     } catch (error) {
       console.error("[Provider Factory] Supabase not available:", error)
     }
 
-    // Check Mock provider
+    // Check Simple provider (fallback/testing)
     try {
-      // TODO: Check if Mock is available
-      // providers.push("mock")
+      providers.push("simple")
     } catch (error) {
-      console.error("[Provider Factory] Mock not available:", error)
+      console.error("[Provider Factory] Simple provider not available:", error)
     }
 
     return providers
@@ -63,7 +53,7 @@ export class ProviderFactory {
 // Singleton instance
 let providerInstance: DatabaseProvider | null = null
 
-export async function getDatabaseProvider(provider: DatabaseProviderType = "simple"): Promise<DatabaseProvider> {
+export async function getDatabaseProvider(provider: DatabaseProviderType = "supabase"): Promise<DatabaseProvider> {
   if (!providerInstance) {
     providerInstance = ProviderFactory.create(provider)
   }

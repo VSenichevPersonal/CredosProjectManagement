@@ -25,10 +25,40 @@ import type {
 } from '@/types/domain'
 import type { RevenueManual, CreateRevenueManualDTO, RevenueFilters, SalaryRegister, CreateSalaryRegisterDTO } from '@/types/domain'
 
+// Фильтры для направлений
+export interface DirectionFilters {
+  search?: string
+  isActive?: boolean
+  limit?: number
+  offset?: number
+}
+
+// Фильтры для сотрудников
+export interface EmployeeFilters {
+  search?: string
+  directionId?: string
+  isActive?: boolean
+  limit?: number
+  offset?: number
+}
+
+export interface QueryResult<T = any> {
+  rows: T[]
+  rowCount: number
+}
+
 export interface DatabaseProvider {
+  /**
+   * @internal
+   * Raw SQL query execution for complex analytics and reports only.
+   * Use repository methods for standard CRUD operations.
+   */
+  _rawQuery<T = any>(ctx: ExecutionContext, sql: string, params?: any[]): Promise<QueryResult<T>>
+
   // Employee operations
   employees: {
-    getAll(ctx: ExecutionContext): Promise<Employee[]>
+    getAll(ctx: ExecutionContext, filters?: EmployeeFilters): Promise<Employee[]>
+    getCount(ctx: ExecutionContext, filters?: EmployeeFilters): Promise<number>
     getById(ctx: ExecutionContext, id: string): Promise<Employee | null>
     getByDirection(ctx: ExecutionContext, directionId: string): Promise<Employee[]>
     getSubordinates(ctx: ExecutionContext, managerId: string): Promise<Employee[]>
@@ -51,7 +81,8 @@ export interface DatabaseProvider {
 
   // Direction operations
   directions: {
-    getAll(ctx: ExecutionContext): Promise<Direction[]>
+    getAll(ctx: ExecutionContext, filters?: DirectionFilters): Promise<Direction[]>
+    getCount(ctx: ExecutionContext, filters?: DirectionFilters): Promise<number>
     getById(ctx: ExecutionContext, id: string): Promise<Direction | null>
     create(ctx: ExecutionContext, data: Omit<Direction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Direction>
     update(ctx: ExecutionContext, id: string, data: Partial<Direction>): Promise<Direction>
@@ -61,6 +92,7 @@ export interface DatabaseProvider {
   // Project operations
   projects: {
     getAll(ctx: ExecutionContext, filters?: ProjectFilters): Promise<Project[]>
+    getCount(ctx: ExecutionContext, filters?: ProjectFilters): Promise<number>
     getById(ctx: ExecutionContext, id: string): Promise<Project | null>
     getByManager(ctx: ExecutionContext, managerId: string): Promise<Project[]>
     getByDirection(ctx: ExecutionContext, directionId: string): Promise<Project[]>
@@ -72,6 +104,7 @@ export interface DatabaseProvider {
   // Task operations
   tasks: {
     getAll(ctx: ExecutionContext, filters?: TaskFilters): Promise<Task[]>
+    getCount(ctx: ExecutionContext, filters?: TaskFilters): Promise<number>
     getById(ctx: ExecutionContext, id: string): Promise<Task | null>
     getByProject(ctx: ExecutionContext, projectId: string): Promise<Task[]>
     getByAssignee(ctx: ExecutionContext, assigneeId: string): Promise<Task[]>
