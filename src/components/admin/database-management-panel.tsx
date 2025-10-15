@@ -114,12 +114,13 @@ export function DatabaseManagementPanel() {
 
       setIntegrityReport(data)
       
-      const statusEmoji = {
+      const statusEmojis: Record<'excellent' | 'good' | 'warning' | 'critical', string> = {
         excellent: '✅',
         good: '👍',
         warning: '⚠️',
         critical: '❌'
-      }[data.status]
+      }
+      const statusEmoji = statusEmojis[data.status as 'excellent' | 'good' | 'warning' | 'critical']
       
       toast({
         title: `${statusEmoji} ${data.message}`,
