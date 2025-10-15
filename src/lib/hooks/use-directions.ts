@@ -28,11 +28,20 @@ export const directionKeys = {
   detail: (id: string) => [...directionKeys.details(), id] as const,
 };
 
-export function useDirections() {
+export function useDirections(filters?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
-    queryKey: directionKeys.lists(),
-    queryFn: async (): Promise<Direction[]> => {
-      const response = await fetch('/api/directions');
+    queryKey: directionKeys.list(filters || {}),
+    queryFn: async (): Promise<{ data: Direction[]; total: number; page?: number; totalPages?: number }> => {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await fetch(`/api/directions?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch directions');
       return response.json();
     },

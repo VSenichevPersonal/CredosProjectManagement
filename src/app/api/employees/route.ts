@@ -1,81 +1,85 @@
-/**
- * @intent: Handle employee CRUD operations
- */
-
-import type { NextRequest } from "next/server"
-import { createExecutionContext } from "@/lib/context/create-context"
-import { handleApiError } from "@/lib/utils/errors"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server';
+import { createExecutionContext } from '@/lib/context/create-context';
+import { EmployeeService } from '@/services/employee-service';
+import { z } from 'zod';
 
 const createEmployeeSchema = z.object({
-  email: z.string().email("Некорректный email"),
   fullName: z.string().min(1, "ФИО обязательно"),
-  position: z.string().min(1, "Должность обязательна"),
-  directionId: z.string().uuid("Некорректный ID направления"),
-  defaultHourlyRate: z.number().min(0).optional(),
+  email: z.string().email("Неверный email"),
   phone: z.string().optional(),
-})
+  position: z.string().min(1, "Должность обязательна"),
+  directionId: z.string().uuid("Неверный ID направления"),
+  defaultHourlyRate: z.number().min(0).optional(),
+});
 
-// GET /api/employees - List all employees
 export async function GET(request: NextRequest) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    ctx.logger.info("GET /api/employees - Fetching employees")
+    context.logger.info('Fetching employees with filters');
 
-    await ctx.access.require("employees:read")
+    const searchParams = request.nextUrl.searchParams;
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
-    const searchParams = request.nextUrl.searchParams
     const filters = {
-      directionId: searchParams.get("directionId") || undefined,
-      isActive: searchParams.get("isActive") === "false" ? false : true,
-    }
+      search: searchParams.get('search') || undefined,
+      directionId: searchParams.get('directionId') || undefined,
+      limit,
+      offset,
+    };
 
-    const employees = await ctx.db.employees.getAll(ctx, filters)
-    ctx.logger.info("Employees fetched", { count: employees.length })
+    const result = await EmployeeService.getAllEmployees(context, filters);
 
-    return Response.json({
-      data: employees,
-      total: employees.length,
-    })
+    context.logger.info('Employees fetched', { 
+      count: result.data.length, 
+      total: result.total 
+    });
+
+    return NextResponse.json({
+      data: result.data,
+      total: result.total,
+      page,
+      limit,
+      totalPages: Math.ceil(result.total / limit),
+    });
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to fetch employees', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch employees' },
+      { status: 500 }
+    );
   }
 }
 
-// POST /api/employees - Create new employee
 export async function POST(request: NextRequest) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    ctx.logger.info("POST /api/employees - Creating employee")
+    const body = await request.json();
+    context.logger.info('Creating employee', body);
 
-    await ctx.access.require("employees:create")
+    const validatedData = createEmployeeSchema.parse(body);
 
-    const body = await request.json()
-    const validatedData = createEmployeeSchema.parse(body)
+    const employee = await EmployeeService.createEmployee(context, validatedData);
 
-    // Check if email already exists
-    const existingEmployee = await ctx.db.employees.getByEmail(ctx, validatedData.email)
-    if (existingEmployee) {
-      return Response.json(
-        { error: "Сотрудник с таким email уже существует" },
+    context.logger.info('Employee created', { id: employee.id });
+
+    return NextResponse.json(employee, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      context.logger.warn('Validation error', error.errors);
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
         { status: 400 }
-      )
+      );
     }
 
-    const employee = await ctx.db.employees.create(ctx, {
-      email: validatedData.email,
-      fullName: validatedData.fullName,
-      position: validatedData.position,
-      directionId: validatedData.directionId,
-      defaultHourlyRate: validatedData.defaultHourlyRate || 0,
-      isActive: true,
-    })
-
-    ctx.logger.info("Employee created", { id: employee.id })
-
-    return Response.json(employee, { status: 201 })
-  } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to create employee', error);
+    return NextResponse.json(
+      { error: 'Failed to create employee' },
+      { status: 500 }
+    );
   }
 }
-

@@ -1,83 +1,70 @@
-/**
- * @intent: Handle single employee operations
- */
-
-import type { NextRequest } from "next/server"
-import { createExecutionContext } from "@/lib/context/create-context"
-import { handleApiError } from "@/lib/utils/errors"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server';
+import { createExecutionContext } from '@/lib/context/create-context';
+import { EmployeeService } from '@/services/employee-service';
+import { z } from 'zod';
 
 const updateEmployeeSchema = z.object({
   fullName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
   position: z.string().min(1).optional(),
   directionId: z.string().uuid().optional(),
   defaultHourlyRate: z.number().min(0).optional(),
-  isActive: z.boolean().optional(),
-})
+});
 
-// GET /api/employees/[id]
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("employees:read")
-
-    const employee = await ctx.db.employees.getById(ctx, params.id)
+    const employee = await EmployeeService.getEmployeeById(context, params.id);
 
     if (!employee) {
-      return Response.json(
-        { error: "Сотрудник не найден" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    return Response.json(employee)
+    return NextResponse.json(employee);
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to fetch employee', error);
+    return NextResponse.json({ error: 'Failed to fetch employee' }, { status: 500 });
   }
 }
 
-// PUT /api/employees/[id]
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("employees:update")
+    const body = await request.json();
+    const validatedData = updateEmployeeSchema.parse(body);
 
-    const body = await request.json()
-    const validatedData = updateEmployeeSchema.parse(body)
+    const employee = await EmployeeService.updateEmployee(context, params.id, validatedData);
 
-    const employee = await ctx.db.employees.update(ctx, params.id, validatedData)
-
-    ctx.logger.info("Employee updated", { id: params.id })
-
-    return Response.json(employee)
+    return NextResponse.json(employee);
   } catch (error) {
-    return handleApiError(error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
+    context.logger.error('Failed to update employee', error);
+    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
   }
 }
 
-// DELETE /api/employees/[id]
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("employees:delete")
-
-    // Soft delete - set isActive to false
-    await ctx.db.employees.update(ctx, params.id, { isActive: false })
-
-    ctx.logger.info("Employee deleted (soft)", { id: params.id })
-
-    return Response.json({ success: true })
+    await EmployeeService.deleteEmployee(context, params.id);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to delete employee', error);
+    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
   }
 }
-

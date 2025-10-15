@@ -33,11 +33,22 @@ export const employeeKeys = {
   detail: (id: string) => [...employeeKeys.details(), id] as const,
 };
 
-export function useEmployees() {
+export function useEmployees(filters?: {
+  search?: string;
+  directionId?: string;
+  page?: number;
+  limit?: number;
+}) {
   return useQuery({
-    queryKey: employeeKeys.lists(),
-    queryFn: async (): Promise<Employee[]> => {
-      const response = await fetch('/api/employees');
+    queryKey: employeeKeys.list(filters || {}),
+    queryFn: async (): Promise<{ data: Employee[]; total: number; page?: number; totalPages?: number }> => {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.directionId) params.append('directionId', filters.directionId);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await fetch(`/api/employees?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch employees');
       return response.json();
     },

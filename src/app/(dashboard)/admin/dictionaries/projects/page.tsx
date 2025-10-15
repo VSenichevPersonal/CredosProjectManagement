@@ -1,192 +1,333 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react"
+import { UniversalDataTable } from "@/components/shared/universal-data-table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FolderOpen, Plus, Search, Edit, Trash2, Calendar } from "lucide-react"
-import { useApi } from "@/lib/hooks/use-api"
-import { useToast } from "@/hooks/use-toast"
-import type { Project } from "@/types/domain"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { ColumnDefinition } from "@/types/table"
+import { FolderOpen } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "@/lib/hooks/use-projects"
+import { useDirections } from "@/lib/hooks/use-directions"
+
+interface Project {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  directionId: string;
+  managerId?: string;
+  startDate?: string;
+  endDate?: string;
+  budget?: number;
+  status: string;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  planning: "Планирование",
+  active: "Активный",
+  on_hold: "Приостановлен",
+  completed: "Завершён",
+  cancelled: "Отменён",
+}
+
+const STATUS_COLORS: Record<string, "default" | "secondary" | "destructive"> = {
+  planning: "secondary",
+  active: "default",
+  on_hold: "secondary",
+  completed: "default",
+  cancelled: "destructive",
+}
 
 export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    description: "",
+    directionId: "",
+    managerId: "",
+    startDate: "",
+    endDate: "",
+    budget: 0,
+    status: "planning"
+  })
 
-  const api = useApi()
-  const { toast } = useToast()
+  const { data: projResult, isLoading: loadingProjects } = useProjects({ 
+    search: searchQuery, 
+    page: currentPage, 
+    limit: 20 
+  })
+  const { data: dirResult } = useDirections()
+  
+  const projects = projResult?.data || []
+  const directions = dirResult?.data || []
+  
+  const createProject = useCreateProject()
+  const updateProject = useUpdateProject()
+  const deleteProject = useDeleteProject()
 
-  useEffect(() => {
-    loadProjects()
-  }, [])
+  const columns: ColumnDefinition<Project>[] = [
+    { 
+      id: "name", 
+      label: "Название", 
+      key: "name", 
+      sortable: true 
+    },
+    { 
+      id: "code", 
+      label: "Код", 
+      key: "code",
+      render: (v) => v || "—"
+    },
+    { 
+      id: "status", 
+      label: "Статус", 
+      key: "status",
+      render: (v) => <Badge variant={STATUS_COLORS[v as string] || "default"}>{STATUS_LABELS[v as string] || v}</Badge>
+    },
+    { 
+      id: "startDate", 
+      label: "Начало", 
+      key: "startDate",
+      render: (v) => v ? new Date(v as string).toLocaleDateString('ru-RU') : "—"
+    },
+    { 
+      id: "endDate", 
+      label: "Окончание", 
+      key: "endDate",
+      render: (v) => v ? new Date(v as string).toLocaleDateString('ru-RU') : "—"
+    },
+    { 
+      id: "budget", 
+      label: "Бюджет", 
+      key: "budget",
+      sortable: true,
+      render: (v) => v ? `${Number(v).toLocaleString('ru-RU')} ₽` : "—"
+    },
+  ]
 
-  const loadProjects = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/projects')
-      if (response.ok) {
-        const data = await response.json()
-        setProjects(data.data || [])
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить проекты",
-      })
-    } finally {
-      setLoading(false)
-    }
+  const handleAdd = () => {
+    setFormData({ name: "", code: "", description: "", directionId: "", managerId: "", startDate: "", endDate: "", budget: 0, status: "planning" })
+    setIsDialogOpen(true)
   }
 
-  const filteredProjects = projects.filter(proj => 
-    proj.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const handleEdit = (project: Project) => {
+    setEditingProject(project)
+    setFormData({
+      name: project.name,
+      code: project.code || "",
+      description: project.description || "",
+      directionId: project.directionId,
+      managerId: project.managerId || "",
+      startDate: project.startDate || "",
+      endDate: project.endDate || "",
+      budget: project.budget || 0,
+      status: project.status
+    })
+    setIsEditDialogOpen(true)
+  }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800"
-      case "planning":
-        return "bg-yellow-100 text-yellow-800"
-      case "completed":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-blue-100 text-blue-800"
-    }
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.directionId) return
+    createProject.mutate(formData, {
+      onSuccess: () => {
+        setIsDialogOpen(false)
+        setFormData({ name: "", code: "", description: "", directionId: "", managerId: "", startDate: "", endDate: "", budget: 0, status: "planning" })
+      }
+    })
+  }
+
+  const handleEditSubmit = async () => {
+    if (!editingProject || !formData.name || !formData.directionId) return
+    updateProject.mutate({ id: editingProject.id, data: formData }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false)
+        setEditingProject(null)
+      }
+    })
   }
 
   const handleDelete = async (project: Project) => {
-    if (!confirm(`Удалить проект "${project.name}"?`)) return
-
-    try {
-      await api.execute(`/api/projects/${project.id}`, {
-        method: 'DELETE',
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Проект удален",
-      })
-
-      loadProjects()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить проект",
-      })
+    if (confirm(`Вы уверены, что хотите удалить проект "${project.name}"?`)) {
+      deleteProject.mutate(project.id)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-credos-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Загрузка проектов...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Проекты</h1>
-          <p className="text-gray-600 mt-1">Справочник проектов компании</p>
-        </div>
-        <Button className="gap-2" onClick={() => toast({ title: "Используйте основную страницу", description: "Создание доступно в /projects" })}>
-          <Plus className="h-4 w-4" />
-          Добавить проект
-        </Button>
-      </div>
+    <div>
+      <UniversalDataTable
+        title="Проекты"
+        description="Управление проектами компании"
+        icon={FolderOpen}
+        data={projects}
+        columns={columns}
+        isLoading={loadingProjects}
+        searchPlaceholder="Поиск проектов..."
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        addButtonLabel="Создать проект"
+        canExport
+        exportFilename="projects"
+        emptyStateTitle="Нет проектов"
+        emptyStateDescription="Создайте первый проект для начала работы"
+      />
 
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Поиск по названию..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+      {/* Диалог создания */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Создать проект</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Название проекта *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Например: Внедрение SIEM"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="code">Код</Label>
+                <Input
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({...formData, code: e.target.value})}
+                  placeholder="SIEM-2024"
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="description">Описание</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Краткое описание проекта..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="direction">Направление *</Label>
+                <Select value={formData.directionId} onValueChange={(v) => setFormData({...formData, directionId: v})}>
+                  <SelectTrigger id="direction">
+                    <SelectValue placeholder="Выберите направление" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {directions.map((dir) => (
+                      <SelectItem key={dir.id} value={dir.id}>{dir.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="status">Статус</Label>
+                <Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}>
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="startDate">Дата начала</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="endDate">Дата окончания</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="budget">Бюджет (₽)</Label>
+              <Input
+                id="budget"
+                type="number"
+                value={formData.budget}
+                onChange={(e) => setFormData({...formData, budget: parseFloat(e.target.value) || 0})}
+                placeholder="0"
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={createProject.isPending}>
+              Отмена
+            </Button>
+            <Button onClick={handleSubmit} disabled={!formData.name || !formData.directionId || createProject.isPending}>
+              {createProject.isPending ? "Создание..." : "Создать"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Projects List */}
-      <div className="grid gap-4">
-        {filteredProjects.map((project) => (
-          <Card key={project.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-credos-muted flex items-center justify-center">
-                    <FolderOpen className="h-6 w-6 text-credos-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                    {project.description && (
-                      <p className="text-sm text-muted-foreground">{project.description}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => toast({ title: "В разработке" })}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(project)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+      {/* Диалог редактирования - аналогично */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Редактировать проект</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Название проекта *</Label>
+                <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Например: Внедрение SIEM" />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {project.startDate && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Начало: {new Date(project.startDate).toLocaleDateString('ru-RU')}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 pt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                    {project.status}
-                  </span>
-                  {project.totalBudget && (
-                    <span className="text-xs text-muted-foreground">
-                      Бюджет: <span className="font-medium">{project.totalBudget.toLocaleString('ru')} ₽</span>
-                    </span>
-                  )}
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-code">Код</Label>
+                <Input id="edit-code" value={formData.code} onChange={(e) => setFormData({...formData, code: e.target.value})} placeholder="SIEM-2024" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProjects.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">Проекты не найдены</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {searchQuery ? "Попробуйте изменить поисковый запрос" : "Создайте первый проект"}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+            </div>
+            <div className="grid gap-2"><Label htmlFor="edit-description">Описание</Label><Textarea id="edit-description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Краткое описание проекта..." rows={3} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2"><Label htmlFor="edit-direction">Направление *</Label><Select value={formData.directionId} onValueChange={(v) => setFormData({...formData, directionId: v})}><SelectTrigger id="edit-direction"><SelectValue placeholder="Выберите направление" /></SelectTrigger><SelectContent>{directions.map((dir) => (<SelectItem key={dir.id} value={dir.id}>{dir.name}</SelectItem>))}</SelectContent></Select></div>
+              <div className="grid gap-2"><Label htmlFor="edit-status">Статус</Label><Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}><SelectTrigger id="edit-status"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABELS).map(([value, label]) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}</SelectContent></Select></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2"><Label htmlFor="edit-startDate">Дата начала</Label><Input id="edit-startDate" type="date" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} /></div>
+              <div className="grid gap-2"><Label htmlFor="edit-endDate">Дата окончания</Label><Input id="edit-endDate" type="date" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} /></div>
+            </div>
+            <div className="grid gap-2"><Label htmlFor="edit-budget">Бюджет (₽)</Label><Input id="edit-budget" type="number" value={formData.budget} onChange={(e) => setFormData({...formData, budget: parseFloat(e.target.value) || 0})} placeholder="0" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={updateProject.isPending}>Отмена</Button>
+            <Button onClick={handleEditSubmit} disabled={!formData.name || !formData.directionId || updateProject.isPending}>{updateProject.isPending ? "Сохранение..." : "Сохранить изменения"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,83 +1,68 @@
-/**
- * @intent: Handle single direction operations
- */
-
-import type { NextRequest } from "next/server"
-import { createExecutionContext } from "@/lib/context/create-context"
-import { handleApiError } from "@/lib/utils/errors"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server';
+import { createExecutionContext } from '@/lib/context/create-context';
+import { DirectionService } from '@/services/direction-service';
+import { z } from 'zod';
 
 const updateDirectionSchema = z.object({
   name: z.string().min(1).optional(),
+  code: z.string().optional(),
   description: z.string().optional(),
-  budget: z.number().min(0).optional(),
-  budgetThreshold: z.number().min(0).optional(),
-  color: z.string().optional(),
-  isActive: z.boolean().optional(),
-})
+  budget: z.number().optional(),
+});
 
-// GET /api/directions/[id]
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("directions:read")
-
-    const direction = await ctx.db.directions.getById(ctx, params.id)
+    const direction = await DirectionService.getDirectionById(context, params.id);
 
     if (!direction) {
-      return Response.json(
-        { error: "Направление не найдено" },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Direction not found' }, { status: 404 });
     }
 
-    return Response.json(direction)
+    return NextResponse.json(direction);
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to fetch direction', error);
+    return NextResponse.json({ error: 'Failed to fetch direction' }, { status: 500 });
   }
 }
 
-// PUT /api/directions/[id]
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("directions:update")
+    const body = await request.json();
+    const validatedData = updateDirectionSchema.parse(body);
 
-    const body = await request.json()
-    const validatedData = updateDirectionSchema.parse(body)
+    const direction = await DirectionService.updateDirection(context, params.id, validatedData);
 
-    const direction = await ctx.db.directions.update(ctx, params.id, validatedData)
-
-    ctx.logger.info("Direction updated", { id: params.id })
-
-    return Response.json(direction)
+    return NextResponse.json(direction);
   } catch (error) {
-    return handleApiError(error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
+    context.logger.error('Failed to update direction', error);
+    return NextResponse.json({ error: 'Failed to update direction' }, { status: 500 });
   }
 }
 
-// DELETE /api/directions/[id]
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const context = createExecutionContext(request);
+  
   try {
-    const ctx = await createExecutionContext(request)
-    await ctx.access.require("directions:delete")
-
-    await ctx.db.directions.delete(ctx, params.id)
-
-    ctx.logger.info("Direction deleted", { id: params.id })
-
-    return Response.json({ success: true })
+    await DirectionService.deleteDirection(context, params.id);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    return handleApiError(error)
+    context.logger.error('Failed to delete direction', error);
+    return NextResponse.json({ error: 'Failed to delete direction' }, { status: 500 });
   }
 }
-
