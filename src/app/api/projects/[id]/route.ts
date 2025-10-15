@@ -20,7 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     context.logger.info('Fetching project', { id: params.id });
@@ -45,7 +45,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     const body = await request.json();
@@ -77,7 +77,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     context.logger.info('Deleting project', { id: params.id });

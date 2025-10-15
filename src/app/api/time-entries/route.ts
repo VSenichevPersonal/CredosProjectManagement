@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createExecutionContext } from '@/lib/context/execution-context';
+import { createExecutionContext } from '@/lib/context/create-context';
 import { TimeEntryService } from '@/services/time-entry-service';
 import { z } from 'zod';
 
@@ -13,7 +13,7 @@ const createTimeEntrySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const context = createExecutionContext('time-entries-api');
+  const context = await createExecutionContext(request);
   
   try {
     const { searchParams } = new URL(request.url);
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const context = createExecutionContext('time-entries-api');
+  const context = await createExecutionContext(request);
   
   try {
     const body = await request.json();

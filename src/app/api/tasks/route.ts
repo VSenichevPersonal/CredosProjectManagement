@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const filters = {
       projectId: searchParams.get("projectId") || undefined,
       assigneeId: searchParams.get("assigneeId") || undefined,
-      status: searchParams.get("status") || undefined,
+      status: searchParams.get("status") as any || undefined,
     }
 
     const tasks = await ctx.db.tasks.getAll(ctx, filters)
@@ -60,13 +60,13 @@ export async function POST(request: NextRequest) {
       projectId: validatedData.projectId,
       name: validatedData.name,
       description: validatedData.description,
-      assigneeId: validatedData.assigneeId,
+      assigneeId: validatedData.assigneeId || null,
       status: validatedData.status,
       priority: validatedData.priority,
       estimatedHours: validatedData.estimatedHours,
       actualHours: 0,
       dueDate: validatedData.dueDate,
-    })
+    } as any)
 
     ctx.logger.info("Task created", { id: task.id })
 

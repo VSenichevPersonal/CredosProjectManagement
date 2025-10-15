@@ -14,7 +14,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     const direction = await DirectionService.getDirectionById(context, params.id);
@@ -34,7 +34,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     const body = await request.json();
@@ -56,7 +56,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     await DirectionService.deleteDirection(context, params.id);

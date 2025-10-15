@@ -9,11 +9,11 @@
  */
 
 import * as React from "react"
-import { Button, ButtonProps } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/hooks/use-auth"
 import type { Permission } from "@/lib/access-control/permissions"
 
-export interface ProtectedButtonProps extends ButtonProps {
+export interface ProtectedButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
   permission?: Permission
   fallback?: React.ReactNode
   hideIfNoPermission?: boolean

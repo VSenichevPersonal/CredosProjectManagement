@@ -13,7 +13,7 @@ const createEmployeeSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     context.logger.info('Fetching employees with filters');
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const context = createExecutionContext(request);
+  const context = await createExecutionContext(request);
   
   try {
     const body = await request.json();

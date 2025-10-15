@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { FormField } from "@/components/ui/form-field"
 import { TableSkeleton } from "@/components/ui/skeleton"
 import type { ColumnDefinition } from "@/types/table"
 import { Building2 } from "lucide-react"
 import { useDirections, useCreateDirection, useUpdateDirection, useDeleteDirection } from "@/lib/hooks/use-directions"
 import { useFormValidation } from "@/lib/hooks/use-form-validation"
-import { DirectionSchema } from "@/lib/validators/shared-schemas"
+import { directionSchema } from "@/lib/validators/shared-schemas"
 
 interface Direction {
   id: string;
@@ -37,7 +36,7 @@ export default function DirectionsPage() {
   })
 
   // Validation
-  const { errors, validateField, validateForm, clearErrors } = useFormValidation(DirectionSchema)
+  const { errors, validateField, validate, clearAllErrors } = useFormValidation(directionSchema)
 
   // React Query hooks с server-side search
   const { data: result, isLoading } = useDirections({
@@ -83,7 +82,7 @@ export default function DirectionsPage() {
 
   const handleAdd = () => {
     setFormData({ name: "", code: "", description: "", budget: 0 })
-    clearErrors()
+    clearAllErrors()
     setIsDialogOpen(true)
   }
 
@@ -95,19 +94,19 @@ export default function DirectionsPage() {
       description: direction.description || "",
       budget: direction.budget || 0
     })
-    clearErrors()
+    clearAllErrors()
     setIsEditDialogOpen(true)
   }
 
   const handleSubmit = async () => {
     // Validate form
-    if (!validateForm(formData)) return
+    if (!validate(formData)) return
     
     createDirection.mutate(formData, {
       onSuccess: () => {
         setIsDialogOpen(false)
         setFormData({ name: "", code: "", description: "", budget: 0 })
-        clearErrors()
+        clearAllErrors()
       }
     })
   }
@@ -116,13 +115,13 @@ export default function DirectionsPage() {
     if (!editingDirection) return
     
     // Validate form
-    if (!validateForm(formData)) return
+    if (!validate(formData)) return
     
     updateDirection.mutate({ id: editingDirection.id, data: formData }, {
       onSuccess: () => {
         setIsEditDialogOpen(false)
         setEditingDirection(null)
-        clearErrors()
+        clearAllErrors()
       }
     })
   }
@@ -175,7 +174,8 @@ export default function DirectionsPage() {
             <DialogTitle>Создать направление</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <FormField label="Название направления *" error={errors.name}>
+            <div className="grid gap-2">
+              <Label htmlFor="name">Название направления *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -186,9 +186,11 @@ export default function DirectionsPage() {
                 placeholder="Например: Информационная безопасность"
                 className={errors.name ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+            </div>
             
-            <FormField label="Код" error={errors.code}>
+            <div className="grid gap-2">
+              <Label htmlFor="code">Код</Label>
               <Input
                 id="code"
                 value={formData.code}
@@ -199,9 +201,11 @@ export default function DirectionsPage() {
                 placeholder="IB"
                 className={errors.code ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.code && <p className="text-sm text-red-600">{errors.code}</p>}
+            </div>
             
-            <FormField label="Описание" error={errors.description}>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Описание</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -213,9 +217,11 @@ export default function DirectionsPage() {
                 rows={3}
                 className={errors.description ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+            </div>
             
-            <FormField label="Бюджет (₽)" error={errors.budget}>
+            <div className="grid gap-2">
+              <Label htmlFor="budget">Бюджет (₽)</Label>
               <Input
                 id="budget"
                 type="number"
@@ -228,7 +234,8 @@ export default function DirectionsPage() {
                 placeholder="0"
                 className={errors.budget ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.budget && <p className="text-sm text-red-600">{errors.budget}</p>}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={createDirection.isPending}>
@@ -248,7 +255,8 @@ export default function DirectionsPage() {
             <DialogTitle>Редактировать направление</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <FormField label="Название направления *" error={errors.name}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Название направления *</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
@@ -259,9 +267,11 @@ export default function DirectionsPage() {
                 placeholder="Например: Информационная безопасность"
                 className={errors.name ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+            </div>
             
-            <FormField label="Код" error={errors.code}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-code">Код</Label>
               <Input
                 id="edit-code"
                 value={formData.code}
@@ -272,9 +282,11 @@ export default function DirectionsPage() {
                 placeholder="IB"
                 className={errors.code ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.code && <p className="text-sm text-red-600">{errors.code}</p>}
+            </div>
             
-            <FormField label="Описание" error={errors.description}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Описание</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}
@@ -286,9 +298,11 @@ export default function DirectionsPage() {
                 rows={3}
                 className={errors.description ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+            </div>
             
-            <FormField label="Бюджет (₽)" error={errors.budget}>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-budget">Бюджет (₽)</Label>
               <Input
                 id="edit-budget"
                 type="number"
@@ -301,7 +315,8 @@ export default function DirectionsPage() {
                 placeholder="0"
                 className={errors.budget ? 'border-red-500' : ''}
               />
-            </FormField>
+              {errors.budget && <p className="text-sm text-red-600">{errors.budget}</p>}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={updateDirection.isPending}>

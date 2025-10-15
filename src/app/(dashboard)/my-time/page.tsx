@@ -81,7 +81,7 @@ export default function MyTimePage() {
       render: (v, row) => {
         if (!row.taskId) return "—"
         const task = tasks.find(t => t.id === row.taskId)
-        return task?.title || "—"
+        return task?.name || "—"
       }
     },
     {
@@ -242,7 +242,7 @@ export default function MyTimePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {filteredTasks.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -290,7 +290,7 @@ export default function MyTimePage() {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2"><Label htmlFor="edit-date">Дата *</Label><Input id="edit-date" type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} /></div>
                 <div className="grid gap-2"><Label htmlFor="edit-project">Проект *</Label><Select value={formData.projectId} onValueChange={(v) => setFormData({...formData, projectId: v, taskId: ""})}><SelectTrigger id="edit-project"><SelectValue placeholder="Выберите проект" /></SelectTrigger><SelectContent>{projects.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}</SelectContent></Select></div>
-                <div className="grid gap-2"><Label htmlFor="edit-task">Задача</Label><Select value={formData.taskId} onValueChange={(v) => setFormData({...formData, taskId: v})} disabled={!formData.projectId}><SelectTrigger id="edit-task"><SelectValue placeholder="Выберите задачу" /></SelectTrigger><SelectContent>{filteredTasks.map((t) => (<SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>))}</SelectContent></Select></div>
+                <div className="grid gap-2"><Label htmlFor="edit-task">Задача</Label><Select value={formData.taskId} onValueChange={(v) => setFormData({...formData, taskId: v})} disabled={!formData.projectId}><SelectTrigger id="edit-task"><SelectValue placeholder="Выберите задачу" /></SelectTrigger><SelectContent>{filteredTasks.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}</SelectContent></Select></div>
                 <div className="grid gap-2"><Label htmlFor="edit-hours">Часы *</Label><Input id="edit-hours" type="number" step="0.5" min="0.1" max="24" value={formData.hours} onChange={(e) => setFormData({...formData, hours: parseFloat(e.target.value) || 0})} /></div>
                 <div className="grid gap-2"><Label htmlFor="edit-description">Описание</Label><Textarea id="edit-description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="Что было сделано..." rows={3} /></div>
               </div>

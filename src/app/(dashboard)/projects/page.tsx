@@ -42,8 +42,10 @@ export default function ProjectsPage() {
   })
 
   // React Query hooks
-  const { data: projects = [], isLoading: loadingProjects } = useProjects()
-  const { data: directions = [], isLoading: loadingDirections } = useDirections()
+  const { data: projectsResult, isLoading: loadingProjects } = useProjects()
+  const { data: directionsResult, isLoading: loadingDirections } = useDirections()
+  const projects = projectsResult?.data || []
+  const directions = directionsResult?.data || []
   const createProject = useCreateProject()
   const updateProject = useUpdateProject()
   const deleteProject = useDeleteProject()
