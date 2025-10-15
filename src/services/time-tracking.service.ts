@@ -27,7 +27,7 @@ export class TimeTrackingService {
    */
   static async getTimeEntries(ctx: ExecutionContext, filters?: any): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] getTimeEntries", { filters })
-    await ctx.access.require('time:read')
+    await ctx.access.require('time_entries:read')
     
     const timeEntries = await ctx.db.timeEntries.getAll(ctx);
     
@@ -63,7 +63,7 @@ export class TimeTrackingService {
    */
   static async createTimeEntry(ctx: ExecutionContext, dto: any): Promise<TimeEntry> {
     ctx.logger.info("[TimeTrackingService] createTimeEntry", { dto })
-    await ctx.access.require('time:create')
+    await ctx.access.require('time_entries:create')
     
     // Валидация бизнес-правил
     if (dto.hours <= 0 || dto.hours > 24) {
@@ -100,7 +100,7 @@ export class TimeTrackingService {
    */
   static async createBulkTimeEntries(ctx: ExecutionContext, entries: any[]): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] createBulkTimeEntries", { count: entries.length })
-    await ctx.access.require('time:create')
+    await ctx.access.require('time_entries:create')
     
     const createdEntries: TimeEntry[] = [];
     
@@ -118,7 +118,7 @@ export class TimeTrackingService {
    */
   static async getAllTimeEntries(ctx: ExecutionContext, filters?: TimeEntryFilters): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] getAllTimeEntries", { filters })
-    await ctx.access.require('time:read')
+    await ctx.access.require('time_entries:read')
 
     const timeEntries = await ctx.db.timeEntries.getAll(ctx);
     
@@ -163,10 +163,10 @@ export class TimeTrackingService {
    */
   static async getTimeEntriesByEmployee(ctx: ExecutionContext, employeeId: string): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] getTimeEntriesByEmployee", { employeeId })
-    await ctx.access.require('time:read')
+    await ctx.access.require('time_entries:read')
 
     // Сотрудник может видеть только свои записи, менеджеры - всех
-    if (ctx.user.id !== employeeId && !ctx.access.check('time:read')) {
+    if (ctx.user.id !== employeeId && !ctx.access.check('time_entries:read')) {
       throw new Error('Недостаточно прав для просмотра чужих трудозатрат');
     }
 
@@ -178,7 +178,7 @@ export class TimeTrackingService {
    */
   static async getTimeEntriesByProject(ctx: ExecutionContext, projectId: string): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] getTimeEntriesByProject", { projectId })
-    await ctx.access.require('time:read')
+    await ctx.access.require('time_entries:read')
 
     return await ctx.db.timeEntries.getByTask(ctx, projectId);
   }
@@ -188,7 +188,7 @@ export class TimeTrackingService {
    */
   static async updateTimeEntry(ctx: ExecutionContext, id: string, dto: UpdateTimeEntryDTO): Promise<TimeEntry> {
     ctx.logger.info("[TimeTrackingService] updateTimeEntry", { id, dto })
-    await ctx.access.require('time:update')
+    await ctx.access.require('time_entries:update')
 
     const existingEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!existingEntry) {
@@ -196,7 +196,7 @@ export class TimeTrackingService {
     }
 
     // Сотрудник может обновлять только свои записи
-    if (ctx.user.id !== existingEntry.employeeId && !ctx.access.check('time:update')) {
+    if (ctx.user.id !== existingEntry.employeeId && !ctx.access.check('time_entries:update')) {
       throw new Error('Недостаточно прав для обновления чужих записей');
     }
 
@@ -230,7 +230,7 @@ export class TimeTrackingService {
    */
   static async deleteTimeEntry(ctx: ExecutionContext, id: string): Promise<void> {
     ctx.logger.info("[TimeTrackingService] deleteTimeEntry", { id })
-    await ctx.access.require('time:delete')
+    await ctx.access.require('time_entries:delete')
 
     const timeEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!timeEntry) {
@@ -238,7 +238,7 @@ export class TimeTrackingService {
     }
 
     // Сотрудник может удалять только свои записи
-    if (ctx.user.id !== timeEntry.employeeId && !ctx.access.check('time:delete')) {
+    if (ctx.user.id !== timeEntry.employeeId && !ctx.access.check('time_entries:delete')) {
       throw new Error('Недостаточно прав для удаления чужих записей');
     }
 
@@ -256,7 +256,7 @@ export class TimeTrackingService {
    */
   static async approveTimeEntry(ctx: ExecutionContext, id: string, dto: ApproveTimeEntryDTO): Promise<TimeEntry> {
     ctx.logger.info("[TimeTrackingService] approveTimeEntry", { id, dto })
-    await ctx.access.require('time:approve')
+    await ctx.access.require('time_entries:approve')
 
     const timeEntry = await ctx.db.timeEntries.getById(ctx, id);
     if (!timeEntry) {
@@ -291,7 +291,7 @@ export class TimeTrackingService {
     dateTo?: string;
   }): Promise<TimeTrackingStats> {
     ctx.logger.info("[TimeTrackingService] getTimeTrackingStats", { filters })
-    await ctx.access.require('time:read')
+    await ctx.access.require('time_entries:read')
 
     const timeEntries = await TimeTrackingService.getAllTimeEntries(ctx, filters);
     
@@ -331,7 +331,7 @@ export class TimeTrackingService {
    */
   static async getPendingTimeEntries(ctx: ExecutionContext): Promise<TimeEntry[]> {
     ctx.logger.info("[TimeTrackingService] getPendingTimeEntries")
-    await ctx.access.require('time:approve')
+    await ctx.access.require('time_entries:approve')
 
     const allEntries = await ctx.db.timeEntries.getAll(ctx);
     const submittedEntries = allEntries.filter(entry => entry.status === 'submitted');
