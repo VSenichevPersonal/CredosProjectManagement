@@ -64,12 +64,6 @@ export function canAccessEmployee(ctx: ExecutionContext, employeeId: string): bo
     return false // Временно отключено
   }
   
-  // Team leads can access their team
-  if (hasRole(ctx, 'team_lead')) {
-    // TODO: Implement team hierarchy check
-    return false
-  }
-  
   // Employees can only access themselves
   return ctx.employeeId === employeeId
 }
@@ -78,9 +72,9 @@ export function canAccessProject(ctx: ExecutionContext, projectId: string): bool
   // Admin can access all projects
   if (hasRole(ctx, 'admin')) return true
   
-  // Project managers can access their projects
-  if (hasRole(ctx, 'project_manager')) {
-    // TODO: Implement project access check
+  // Managers can access projects in their direction
+  if (hasRole(ctx, 'manager')) {
+    // TODO: Implement project access check by direction
     return true
   }
   
@@ -101,9 +95,11 @@ export function canManageEmployees(ctx: ExecutionContext): boolean {
 }
 
 export function canViewReports(ctx: ExecutionContext): boolean {
-  return hasPermission(ctx, 'reports:read')
+  // TODO: Add reports:read permission to permissions.ts
+  return hasPermission(ctx, 'reports:view') || hasRole(ctx, 'admin') || hasRole(ctx, 'manager')
 }
 
 export function canViewFinance(ctx: ExecutionContext): boolean {
-  return hasPermission(ctx, 'finance:read')
+  // TODO: Add finance permissions to permissions.ts
+  return hasRole(ctx, 'admin') || hasRole(ctx, 'manager')
 }

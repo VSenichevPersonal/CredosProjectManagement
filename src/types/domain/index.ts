@@ -198,7 +198,7 @@ export type TimeEntryStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
 export type Priority = 'low' | 'medium' | 'high' | 'critical'
 
 // Новые типы
-export type UserRoleType = 'admin' | 'manager' | 'project_manager' | 'employee' | 'hr' | 'finance'
+export type UserRoleType = 'admin' | 'manager' | 'employee' | 'viewer'
 export type PhaseStatus = 'planned' | 'active' | 'completed' | 'cancelled'
 export type ProjectTeamRole = 'member' | 'lead' | 'consultant'
 export type BatchApprovalType = 'time_entries' | 'expenses' | 'other'
