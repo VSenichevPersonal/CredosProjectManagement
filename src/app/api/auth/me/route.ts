@@ -12,12 +12,18 @@ export async function GET(request: NextRequest) {
   try {
     const ctx = await createExecutionContext(request);
 
-    // Возвращаем информацию о пользователе + роли + права
+    // Возвращаем информацию о пользователе + employee + роли + права
     return NextResponse.json({
-      id: ctx.userId,
-      email: ctx.user.email,
-      fullName: ctx.user.fullName,
-      employeeId: ctx.employeeId,
+      user: {
+        id: ctx.userId,
+        email: ctx.user.email,
+      },
+      employee: {
+        id: ctx.employeeId,
+        fullName: ctx.user.fullName,
+        position: ctx.user.position,
+        email: ctx.user.email,
+      },
       roles: ctx.access.getRoles(),
       permissions: ctx.access.getPermissions(),
     });
