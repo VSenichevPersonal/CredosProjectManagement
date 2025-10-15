@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { UniversalDataTable } from "@/components/shared/universal-data-table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -9,16 +9,24 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { ColumnDefinition } from "@/types/table"
-import type { Project } from "@/types/domain"
 import { FolderOpen } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { useApi } from "@/lib/hooks/use-api"
-import { useToast } from "@/hooks/use-toast"
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "@/lib/hooks/use-projects"
+import { useDirections } from "@/lib/hooks/use-directions"
+
+interface Project {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  totalBudget?: number;
+  directionId: string;
+}
 
 export default function ProjectsPage() {
-  const [data, setData] = useState<Project[]>([])
-  const [directions, setDirections] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
@@ -33,41 +41,12 @@ export default function ProjectsPage() {
     directionId: ""
   })
 
-  const api = useApi()
-  const { toast } = useToast()
-
-  // Загрузка проектов и направлений
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      // Загружаем проекты
-      const projectsResponse = await fetch('/api/projects')
-      if (projectsResponse.ok) {
-        const projectsData = await projectsResponse.json()
-        setData(projectsData.data || [])
-      }
-
-      // Загружаем направления для селекта
-      const directionsResponse = await fetch('/api/directions')
-      if (directionsResponse.ok) {
-        const directionsData = await directionsResponse.json()
-        setDirections(directionsData.data || [])
-      }
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      toast({
-        variant: "destructive",
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить данные",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  // React Query hooks
+  const { data: projects = [], isLoading: loadingProjects } = useProjects()
+  const { data: directions = [], isLoading: loadingDirections } = useDirections()
+  const createProject = useCreateProject()
+  const updateProject = useUpdateProject()
+  const deleteProject = useDeleteProject()
 
   const columns: ColumnDefinition<Project>[] = [
     { id: "name", label: "Название", key: "name", sortable: true },
@@ -93,148 +72,110 @@ export default function ProjectsPage() {
         return <Badge className={colors[row.status] || ""}>{labels[row.status] || row.status}</Badge>
       }
     },
-    { id: "startDate", label: "Дата начала", key: "startDate", sortable: true },
-    { id: "totalBudget", label: "Бюджет (₽)", key: "totalBudget", sortable: true, render: (v) => v?.toLocaleString('ru') || '—' },
+    { 
+      id: "code", 
+      label: "Код", 
+      key: "code" 
+    },
+    { 
+      id: "totalBudget", 
+      label: "Бюджет", 
+      key: "totalBudget",
+      render: (v) => v ? `${Number(v).toLocaleString('ru-RU')} ₽` : '—'
+    },
   ]
 
   const handleAdd = () => {
+    setFormData({
+      name: "",
+      code: "",
+      description: "",
+      status: "planning",
+      startDate: "",
+      endDate: "",
+      totalBudget: 0,
+      directionId: ""
+    })
     setIsDialogOpen(true)
-  }
-
-  const handleSubmit = async () => {
-    try {
-      const response = await api.execute('/api/projects', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Проект создан",
-      })
-
-      // Закрываем диалог и обновляем список
-      setIsDialogOpen(false)
-      setFormData({
-        name: "",
-        code: "",
-        description: "",
-        status: "planning",
-        startDate: "",
-        endDate: "",
-        totalBudget: 0,
-        directionId: ""
-      })
-
-      // Перезагружаем данные
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось создать проект",
-      })
-    }
   }
 
   const handleEdit = (project: Project) => {
     setEditingProject(project)
     setFormData({
-      name: project.name || "",
+      name: project.name,
       code: project.code || "",
       description: project.description || "",
-      status: project.status || "planning",
+      status: project.status,
       startDate: project.startDate || "",
       endDate: project.endDate || "",
       totalBudget: project.totalBudget || 0,
-      directionId: project.directionId || ""
+      directionId: project.directionId
     })
     setIsEditDialogOpen(true)
   }
 
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.directionId) return
+
+    createProject.mutate(formData, {
+      onSuccess: () => {
+        setIsDialogOpen(false)
+        setFormData({
+          name: "",
+          code: "",
+          description: "",
+          status: "planning",
+          startDate: "",
+          endDate: "",
+          totalBudget: 0,
+          directionId: ""
+        })
+      }
+    })
+  }
+
   const handleEditSubmit = async () => {
-    if (!editingProject) return
+    if (!editingProject || !formData.name || !formData.directionId) return
 
-    try {
-      await api.execute(`/api/projects/${editingProject.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Проект обновлен",
-      })
-
-      setIsEditDialogOpen(false)
-      setEditingProject(null)
-      setFormData({
-        name: "",
-        code: "",
-        description: "",
-        status: "planning",
-        startDate: "",
-        endDate: "",
-        totalBudget: 0,
-        directionId: ""
-      })
-
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось обновить проект",
-      })
-    }
+    updateProject.mutate({ id: editingProject.id, data: formData }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false)
+        setEditingProject(null)
+      }
+    })
   }
 
   const handleDelete = async (project: Project) => {
-    if (!confirm(`Удалить проект "${project.name}"?`)) return
-
-    try {
-      await api.execute(`/api/projects/${project.id}`, {
-        method: 'DELETE',
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Проект удален",
-      })
-
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить проект",
-      })
+    if (confirm(`Вы уверены, что хотите удалить проект "${project.name}"?`)) {
+      deleteProject.mutate(project.id)
     }
   }
 
-  return (
-    <>
-      <div>
-        <UniversalDataTable
-          title="Все проекты"
-          description="Управление проектами компании"
-          icon={FolderOpen}
-          data={data}
-          columns={columns}
-          onAdd={handleAdd}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          addButtonLabel="Создать проект"
-          isLoading={loading}
-          canExport
-          exportFilename="projects"
-        />
-      </div>
+  const loading = loadingProjects || loadingDirections
+  const isMutating = createProject.isPending || updateProject.isPending || deleteProject.isPending
 
+  return (
+    <div>
+      <UniversalDataTable
+        title="Проекты"
+        description="Управление проектами компании"
+        icon={FolderOpen}
+        data={projects}
+        columns={columns}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        addButtonLabel="Создать проект"
+        canExport
+        exportFilename="projects"
+        isLoading={loading || isMutating}
+      />
+
+      {/* Диалог создания */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Новый проект</DialogTitle>
+            <DialogTitle>Создать проект</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -335,26 +276,23 @@ export default function ProjectsPage() {
                 id="budget"
                 type="number"
                 value={formData.totalBudget}
-                onChange={(e) => setFormData({...formData, totalBudget: parseFloat(e.target.value)})}
+                onChange={(e) => setFormData({...formData, totalBudget: parseFloat(e.target.value) || 0})}
                 placeholder="0"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={api.loading}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={createProject.isPending}>
               Отмена
             </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={!formData.name || !formData.directionId || api.loading}
-            >
-              {api.loading ? "Создание..." : "Создать проект"}
+            <Button onClick={handleSubmit} disabled={!formData.name || !formData.directionId || createProject.isPending}>
+              {createProject.isPending ? "Создание..." : "Создать проект"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {/* Диалог редактирования */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -465,18 +403,19 @@ export default function ProjectsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={api.loading}>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={updateProject.isPending}>
               Отмена
             </Button>
             <Button 
               onClick={handleEditSubmit} 
-              disabled={!formData.name || !formData.directionId || api.loading}
+              disabled={!formData.name || !formData.directionId || updateProject.isPending}
             >
-              {api.loading ? "Сохранение..." : "Сохранить изменения"}
+              {updateProject.isPending ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
+

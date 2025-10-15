@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { UniversalDataTable } from "@/components/shared/universal-data-table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -9,16 +9,24 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { ColumnDefinition } from "@/types/table"
-import type { Task } from "@/types/domain"
-import { Target } from "lucide-react"
+import { CheckSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { useApi } from "@/lib/hooks/use-api"
-import { useToast } from "@/hooks/use-toast"
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from "@/lib/hooks/use-tasks"
+import { useProjects } from "@/lib/hooks/use-projects"
+
+interface Task {
+  id: string;
+  name: string;
+  description?: string;
+  projectId: string;
+  status: string;
+  priority?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  dueDate?: string;
+}
 
 export default function MyTasksPage() {
-  const [data, setData] = useState<Task[]>([])
-  const [projects, setProjects] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -32,47 +40,19 @@ export default function MyTasksPage() {
     dueDate: ""
   })
 
-  const api = useApi()
-  const { toast } = useToast()
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [tasksRes, projectsRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/projects')
-      ])
-
-      if (tasksRes.ok) {
-        const result = await tasksRes.json()
-        setData(result.data || [])
-      }
-
-      if (projectsRes.ok) {
-        const result = await projectsRes.json()
-        setProjects(result.data || [])
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить данные",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  // React Query hooks
+  const { data: tasks = [], isLoading: loadingTasks } = useTasks()
+  const { data: projects = [], isLoading: loadingProjects } = useProjects()
+  const createTask = useCreateTask()
+  const updateTask = useUpdateTask()
+  const deleteTask = useDeleteTask()
 
   const columns: ColumnDefinition<Task>[] = [
     { id: "name", label: "Задача", key: "name", sortable: true },
     { 
       id: "status", 
       label: "Статус", 
-      key: "status",
+      key: "status", 
       sortable: true,
       render: (v, row) => {
         const colors: Record<string, string> = {
@@ -96,10 +76,10 @@ export default function MyTasksPage() {
       key: "priority",
       render: (v, row) => {
         const colors: Record<string, string> = {
-          low: "text-gray-600",
-          medium: "text-blue-600",
-          high: "text-orange-600",
-          critical: "text-red-600"
+          low: "bg-gray-100 text-gray-800",
+          medium: "bg-blue-100 text-blue-800",
+          high: "bg-orange-100 text-orange-800",
+          critical: "bg-red-100 text-red-800"
         }
         const labels: Record<string, string> = {
           low: "Низкий",
@@ -107,11 +87,15 @@ export default function MyTasksPage() {
           high: "Высокий",
           critical: "Критичный"
         }
-        return <span className={colors[row.priority] || ""}>{labels[row.priority] || row.priority}</span>
+        return <Badge className={colors[row.priority || ''] || ""}>{labels[row.priority || ''] || row.priority}</Badge>
       }
     },
-    { id: "dueDate", label: "Срок", key: "dueDate", sortable: true },
-    { id: "estimatedHours", label: "Оценка (ч)", key: "estimatedHours" },
+    { 
+      id: "estimatedHours", 
+      label: "Оценка (ч)", 
+      key: "estimatedHours",
+      render: (v) => v ? `${v}ч` : '—'
+    },
   ]
 
   const handleAdd = () => {
@@ -127,36 +111,13 @@ export default function MyTasksPage() {
     setIsDialogOpen(true)
   }
 
-  const handleSubmit = async () => {
-    try {
-      await api.execute('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Задача создана",
-      })
-
-      setIsDialogOpen(false)
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось создать задачу",
-      })
-    }
-  }
-
   const handleEdit = (task: Task) => {
     setEditingTask(task)
     setFormData({
-      name: task.name || "",
+      name: task.name,
       description: task.description || "",
-      projectId: task.projectId || "",
-      status: task.status || "todo",
+      projectId: task.projectId,
+      status: task.status,
       priority: task.priority || "medium",
       estimatedHours: task.estimatedHours || 0,
       dueDate: task.dueDate || ""
@@ -164,79 +125,67 @@ export default function MyTasksPage() {
     setIsEditDialogOpen(true)
   }
 
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.projectId) return
+
+    createTask.mutate(formData, {
+      onSuccess: () => {
+        setIsDialogOpen(false)
+        setFormData({
+          name: "",
+          description: "",
+          projectId: "",
+          status: "todo",
+          priority: "medium",
+          estimatedHours: 0,
+          dueDate: ""
+        })
+      }
+    })
+  }
+
   const handleEditSubmit = async () => {
-    if (!editingTask) return
+    if (!editingTask || !formData.name || !formData.projectId) return
 
-    try {
-      await api.execute(`/api/tasks/${editingTask.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Задача обновлена",
-      })
-
-      setIsEditDialogOpen(false)
-      setEditingTask(null)
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось обновить задачу",
-      })
-    }
+    updateTask.mutate({ id: editingTask.id, data: formData }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false)
+        setEditingTask(null)
+      }
+    })
   }
 
   const handleDelete = async (task: Task) => {
-    if (!confirm(`Удалить задачу "${task.name}"?`)) return
-
-    try {
-      await api.execute(`/api/tasks/${task.id}`, {
-        method: 'DELETE',
-      })
-
-      toast({
-        title: "Успешно!",
-        description: "Задача удалена",
-      })
-
-      loadData()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить задачу",
-      })
+    if (confirm(`Вы уверены, что хотите удалить задачу "${task.name}"?`)) {
+      deleteTask.mutate(task.id)
     }
   }
 
-  return (
-    <>
-      <div>
-        <UniversalDataTable
-          title="Мои задачи"
-          description="Задачи, назначенные мне"
-          icon={Target}
-          data={data}
-          columns={columns}
-          onAdd={handleAdd}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          addButtonLabel="Создать задачу"
-          isLoading={loading}
-          canExport
-          exportFilename="my-tasks"
-        />
-      </div>
+  const loading = loadingTasks || loadingProjects
+  const isMutating = createTask.isPending || updateTask.isPending || deleteTask.isPending
 
-      {/* Create Dialog */}
+  return (
+    <div>
+      <UniversalDataTable
+        title="Мои задачи"
+        description="Управление моими задачами"
+        icon={CheckSquare}
+        data={tasks}
+        columns={columns}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        addButtonLabel="Добавить задачу"
+        canExport
+        exportFilename="my-tasks"
+        isLoading={loading || isMutating}
+      />
+
+      {/* Диалог создания */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Новая задача</DialogTitle>
+            <DialogTitle>Создать задачу</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -335,17 +284,17 @@ export default function MyTasksPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={api.loading}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={createTask.isPending}>
               Отмена
             </Button>
-            <Button onClick={handleSubmit} disabled={!formData.name || !formData.projectId || api.loading}>
-              {api.loading ? "Создание..." : "Создать задачу"}
+            <Button onClick={handleSubmit} disabled={!formData.name || !formData.projectId || createTask.isPending}>
+              {createTask.isPending ? "Создание..." : "Создать задачу"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {/* Диалог редактирования */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -448,15 +397,16 @@ export default function MyTasksPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={api.loading}>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={updateTask.isPending}>
               Отмена
             </Button>
-            <Button onClick={handleEditSubmit} disabled={!formData.name || !formData.projectId || api.loading}>
-              {api.loading ? "Сохранение..." : "Сохранить изменения"}
+            <Button onClick={handleEditSubmit} disabled={!formData.name || !formData.projectId || updateTask.isPending}>
+              {updateTask.isPending ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
+
