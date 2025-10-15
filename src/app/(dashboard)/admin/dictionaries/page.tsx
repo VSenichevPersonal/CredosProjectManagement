@@ -21,7 +21,7 @@ const dictionaries = [
     title: "Теги",
     desc: "Метки для проектов и задач",
     icon: Tag,
-    status: "planned",
+    status: "active",
   },
   {
     href: "/admin/dictionaries/rates",

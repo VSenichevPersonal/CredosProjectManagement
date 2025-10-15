@@ -8,6 +8,7 @@
 // Customer & Activity domains
 export * from './customer'
 export * from './activity'
+export * from './tag'
 
 // Employee domain
 export interface Employee {
