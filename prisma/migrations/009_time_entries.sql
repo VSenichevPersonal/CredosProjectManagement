@@ -40,6 +40,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_time_entries_updated_at ON time_entries;
+
 CREATE TRIGGER trigger_time_entries_updated_at
   BEFORE UPDATE ON time_entries
   FOR EACH ROW
