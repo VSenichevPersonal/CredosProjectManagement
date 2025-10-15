@@ -1,78 +1,102 @@
-/**
- * @intent: Handle time entry CRUD operations for Credos PM
- * @llm-note: Thin controller - all logic is in TimeTrackingService
- * @architecture: API Layer - validation → context → service → response
- */
+import { NextRequest, NextResponse } from 'next/server';
+import { createExecutionContext } from '@/lib/context/execution-context';
+import { TimeEntryService } from '@/services/time-entry-service';
+import { z } from 'zod';
 
-import type { NextRequest } from "next/server"
-import { createExecutionContext } from "@/lib/context/create-context"
-import { TimeTrackingService } from "@/services/time-tracking.service"
-import { createTimeEntrySchema, bulkTimeEntrySchema } from "@/lib/validators/time-entry-validators"
-import { validate } from "@/lib/utils/validation"
-import { handleApiError } from "@/lib/utils/errors"
+const createTimeEntrySchema = z.object({
+  employeeId: z.string().uuid(),
+  projectId: z.string().uuid(),
+  taskId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  hours: z.number().min(0).max(24),
+  description: z.string().optional(),
+});
 
-// GET /api/time-entries - List time entries with filters
 export async function GET(request: NextRequest) {
+  const context = createExecutionContext('time-entries-api');
+  
   try {
-    console.log("[Credos PM] [Time Entries API] Starting request")
+    const { searchParams } = new URL(request.url);
+    const employeeId = searchParams.get('employeeId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
-    const ctx = await createExecutionContext(request)
-    console.log("[Credos PM] [Time Entries API] Context created", { userId: ctx.userId })
+    context.logger.info('Fetching time entries', { 
+      employeeId, 
+      startDate, 
+      endDate 
+    });
 
-    const searchParams = request.nextUrl.searchParams
-
-    const filters = {
-      projectId: searchParams.get("projectId") || undefined,
-      employeeId: searchParams.get("employeeId") || undefined,
-      dateFrom: searchParams.get("dateFrom") || undefined,
-      dateTo: searchParams.get("dateTo") || undefined,
-      billable: searchParams.get("billable") === "true" ? true : searchParams.get("billable") === "false" ? false : undefined,
-      sortField: searchParams.get("sortField") || "date",
-      sortDirection: (searchParams.get("sortDirection") as "asc" | "desc") || "desc",
-      page: Number.parseInt(searchParams.get("page") || "1"),
-      limit: Number.parseInt(searchParams.get("limit") || "50"),
+    const service = new TimeEntryService(context);
+    
+    if (employeeId && startDate && endDate) {
+      const entries = await service.getEntriesByEmployeeAndDateRange(
+        employeeId, 
+        startDate, 
+        endDate
+      );
+      return NextResponse.json(entries);
+    } else if (employeeId) {
+      const entries = await service.getEntriesByEmployee(employeeId);
+      return NextResponse.json(entries);
+    } else {
+      const entries = await service.getAllEntries();
+      return NextResponse.json(entries);
     }
-
-    console.log("[Credos PM] [Time Entries API] Filters:", filters)
-
-    const result = await TimeTrackingService.getTimeEntries(ctx, filters)
-    console.log("[Credos PM] [Time Entries API] Time entries fetched:", { count: result.length })
-
-    return Response.json({
-      data: result,
-      total: result.length,
-    })
   } catch (error) {
-    console.error("[Credos PM] [Time Entries API] Error:", error)
-    return handleApiError(error)
+    context.logger.error('Failed to fetch time entries', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch time entries' },
+      { status: 500 }
+    );
   }
 }
 
-// POST /api/time-entries - Create new time entry
 export async function POST(request: NextRequest) {
+  const context = createExecutionContext('time-entries-api');
+  
   try {
-    console.log("[Credos PM] [Time Entries API] Creating time entry")
+    const body = await request.json();
+    context.logger.info('Creating time entry', body);
 
-    const ctx = await createExecutionContext(request)
-    console.log("[Credos PM] [Time Entries API] Context created", { userId: ctx.userId })
+    const validatedData = createTimeEntrySchema.parse(body);
+    const service = new TimeEntryService(context);
+    
+    // Проверяем, существует ли запись за этот день для этого проекта/задачи
+    const existing = await service.getEntryByDateAndTask(
+      validatedData.employeeId,
+      validatedData.date,
+      validatedData.taskId
+    );
 
-    const body = await request.json()
-    console.log("[Credos PM] [Time Entries API] Request body:", body)
-
-    // Check if it's bulk operation
-    if (body.entries && Array.isArray(body.entries)) {
-      const validatedData = validate(bulkTimeEntrySchema, body)
-      const result = await TimeTrackingService.createBulkTimeEntries(ctx, validatedData.entries)
-      console.log("[Credos PM] [Time Entries API] Bulk time entries created:", { count: result.length })
-      return Response.json(result)
+    let result;
+    if (existing) {
+      // Обновляем существующую запись
+      result = await service.updateEntry(existing.id, {
+        hours: validatedData.hours,
+        description: validatedData.description || existing.description,
+      });
+      context.logger.info('Updated existing time entry', { id: existing.id });
     } else {
-      const validatedData = validate(createTimeEntrySchema, body)
-      const result = await TimeTrackingService.createTimeEntry(ctx, validatedData)
-      console.log("[Credos PM] [Time Entries API] Time entry created:", { id: result.id })
-      return Response.json(result)
+      // Создаем новую запись
+      result = await service.createEntry(validatedData);
+      context.logger.info('Created new time entry', { id: result.id });
     }
+
+    return NextResponse.json(result, { status: existing ? 200 : 201 });
   } catch (error) {
-    console.error("[Credos PM] [Time Entries API] Error:", error)
-    return handleApiError(error)
+    if (error instanceof z.ZodError) {
+      context.logger.warn('Validation error', error.errors);
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    context.logger.error('Failed to create time entry', error);
+    return NextResponse.json(
+      { error: 'Failed to create time entry' },
+      { status: 500 }
+    );
   }
 }
