@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { type UserRole, type Permission } from '@/lib/access-control/permissions';
 
@@ -88,14 +89,14 @@ export function withRole<P extends object>(
     const { hasRole, isLoading } = useAuth();
 
     if (isLoading) {
-      return <div>Загрузка...</div> as any;
+      return React.createElement('div', {}, 'Загрузка...');
     }
 
     if (!hasRole(requiredRole)) {
-      return (fallback || <div>Доступ запрещён</div>) as any;
+      return fallback ? fallback : React.createElement('div', {}, 'Доступ запрещён');
     }
 
-    return <Component {...props} />;
+    return React.createElement(Component, props);
   };
 }
 
@@ -111,14 +112,14 @@ export function withPermission<P extends object>(
     const { hasPermission, isLoading } = useAuth();
 
     if (isLoading) {
-      return <div>Загрузка...</div>;
+      return React.createElement('div', {}, 'Загрузка...');
     }
 
     if (!hasPermission(requiredPermission)) {
-      return fallback || <div>Доступ запрещён</div>;
+      return fallback ? fallback : React.createElement('div', {}, 'Доступ запрещён');
     }
 
-    return <Component {...props} />;
+    return React.createElement(Component, props);
   };
 }
 

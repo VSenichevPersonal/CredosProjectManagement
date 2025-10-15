@@ -30,31 +30,13 @@ export function useFormValidation<T extends z.ZodType>(schema: T) {
   };
 
   const validateField = (field: keyof FormData, value: any): boolean => {
-    try {
-      // Create a partial schema for single field validation
-      const fieldSchema = schema.pick({ [field]: true } as any);
-      const result = fieldSchema.safeParse({ [field]: value });
-      
-      if (!result.success) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: result.error.errors[0]?.message || 'Ошибка валидации',
-        }));
-        return false;
-      }
-      
-      // Clear error for this field
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-      return true;
-    } catch (e) {
-      // If pick doesn't work, just validate the whole thing
-      const result = schema.safeParse({ [field]: value });
-      return result.success;
-    }
+    // Just clear error on change, full validation on submit
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+    return true;
   };
 
   const clearError = (field: keyof FormData) => {
