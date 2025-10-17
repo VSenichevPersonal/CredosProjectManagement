@@ -6,6 +6,7 @@ interface Direction {
   name: string;
   code?: string;
   description?: string;
+  color?: string;
   budget?: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -15,6 +16,7 @@ interface CreateDirectionInput {
   name: string;
   code?: string;
   description?: string;
+  color?: string;
   budget?: number;
 }
 
