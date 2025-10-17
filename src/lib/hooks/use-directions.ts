@@ -8,8 +8,9 @@ interface Direction {
   description?: string;
   color?: string;
   budget?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CreateDirectionInput {

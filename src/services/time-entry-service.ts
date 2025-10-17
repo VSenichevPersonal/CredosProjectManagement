@@ -43,11 +43,16 @@ export class TimeEntryService {
     // TODO: Add approval/rejection permissions to permissions.ts
     // await ctx.access.require('time_entries:approve');
     
+    // Get current user ID from context
+    const currentUserId = ctx.user?.id || '00000000-0000-0000-0000-000000000001';
+    
     // TODO: Implement batch approval when repository is ready
     // For now, approve each entry individually
     for (const id of ids) {
       await ctx.db.timeEntries.approve(ctx, {
-        approved: true
+        timeEntryId: id,
+        approved: true,
+        approvedBy: currentUserId
       });
     }
   }

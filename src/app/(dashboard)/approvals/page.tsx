@@ -204,12 +204,7 @@ export default function ApprovalsPage() {
   const columns: ColumnDefinition<ExtendedTimeEntry>[] = [
     {
       id: "select",
-      label: (
-        <Checkbox
-          checked={selectedIds.length === data.length && data.length > 0}
-          onCheckedChange={handleSelectAll}
-        />
-      ),
+      label: "",
       key: "id",
       render: (v, row) => (
         <Checkbox
@@ -261,6 +256,24 @@ export default function ApprovalsPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center">
+    <div>
+          <h1 className="text-2xl font-bold">Согласование часов</h1>
+          <p className="text-sm text-gray-600">Записи времени, ожидающие утверждения</p>
+        </div>
+        {data.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSelectAll}
+            disabled={processing}
+          >
+            <Checkbox checked={selectedIds.length === data.length && data.length > 0} className="mr-2" />
+            {selectedIds.length === data.length ? 'Снять выделение' : 'Выбрать всё'}
+          </Button>
+        )}
+      </div>
+
       {selectedIds.length > 0 && (
         <div className="flex gap-2 items-center p-4 bg-blue-50 border border-blue-200 rounded-md">
           <span className="text-sm font-medium">
@@ -292,8 +305,8 @@ export default function ApprovalsPage() {
       )}
 
       <UniversalDataTable
-        title="Согласование часов"
-        description="Записи времени, ожидающие утверждения"
+        title=""
+        description=""
         icon={CheckSquare}
         data={data}
         columns={columns}

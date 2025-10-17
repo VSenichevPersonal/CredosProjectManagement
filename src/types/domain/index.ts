@@ -15,13 +15,14 @@ export interface Employee {
   id: string
   email: string
   fullName: string // Для интеграции с 1С
+  phone?: string
   position: string
   directionId: string
   direction?: Direction
-  defaultHourlyRate: number // Базовая ставка
+  defaultHourlyRate?: number // Базовая ставка
   isActive: boolean
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Иерархия сотрудников
@@ -53,13 +54,14 @@ export interface UserRole {
 export interface Direction {
   id: string
   name: string
+  code?: string
   description?: string
   budget?: number // План бюджета
   budgetThreshold?: number // Лимит превышения (например, 110% от плана)
-  color: string // Фиксированный набор цветов
+  color?: string // Фиксированный набор цветов
   isActive: boolean
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Project domain
@@ -312,7 +314,9 @@ export interface UpdateTimeEntryDTO {
 }
 
 export interface ApproveTimeEntryDTO {
+  timeEntryId: string
   approved: boolean
+  approvedBy: string
   rejectionReason?: string
 }
 

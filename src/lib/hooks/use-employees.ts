@@ -9,9 +9,9 @@ interface Employee {
   position: string;
   directionId: string;
   defaultHourlyRate?: number;
-  isActive?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CreateEmployeeInput {
